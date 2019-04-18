@@ -50,6 +50,9 @@ Fecshop QQ群号（新）：782387676，入群验证：fecshop
  
 [Fecshop](http://www.fecshop.com) Github地址: https://github.com/fancyecommerce/yii2_fecshop
 
+[Fecshop](http://www.fecshop.com) 码云地址: https://gitee.com/fecshopsoft/yii2_fecshop
+
+
 Fecshop开源协议：[Fecshop 授权协议](http://www.fecshop.com/license)
 
 Fecshop线上项目案例：http://www.fecshop.com/topic/55
@@ -213,6 +216,9 @@ appserver（手机app服务），appapi（erp，或者其他接口对接），
 
 | 捐赠人        | 金额      |  时间            |  方式           | 账户                       | 捐助者留言      |
 | -------------| ---------| -----------    | -----------   | ----------------------| ----------------|
+| （*亮亮    | ￥100.00   | 2019-04-06  |   支付宝          | -                   |   支持榜样，标杆              |
+| （*亮）      | ￥50.00   | 2019-04-06  |   微信          | -                     |    坚持，加油！             |
+| （*树桓）    | ￥50.00   | 2019-03-30  |   支付宝          | -                   |                 |
 | pptrue      | ￥50.00   | 2019-03-19  |   微信          | -                     |    支持开源，感谢Terry             |
 | （*军）      | ￥188.00   | 2019-03-10  |   微信          | -                     |    为3年的坚持点赞            |
 | （*浩）      | ￥66.00   | 2019-02-13  |   微信          | -                     |    支持fecshop长久发展             |
