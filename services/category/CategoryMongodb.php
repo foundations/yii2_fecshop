@@ -42,7 +42,15 @@ class CategoryMongodb extends Service implements CategoryInterface
             return new $this->_categoryModelName;
         }
     }
-    
+    /**
+     * 通过主键，得到Category对象。
+     */
+    public function findOne($where)
+    {
+        $one = $this->_categoryModel->findOne($where);
+        
+        return $one;
+    }
     /**
      * 通过url_key，得到Category对象。
      */
@@ -105,6 +113,11 @@ class CategoryMongodb extends Service implements CategoryInterface
             'coll' => $query->all(),
             'count'=> $query->limit(null)->offset(null)->count(),
         ];
+    }
+    
+    public function apiColl($filter = '')
+    {
+        return $this->coll($filter);
     }
 
     /**
@@ -173,6 +186,37 @@ class CategoryMongodb extends Service implements CategoryInterface
         $model->save();
 
         return $model;
+    }
+     /** 
+     * @param $arr | array
+     * 用于同步mysql数据库到mongodb数据库中
+     */
+    public function sync($arr)
+    {
+        $originUrlKey = 'catalog/category/index';
+        $origin_mysql_parent_id = $arr['parent_id'];
+        $origin_mysql_id = $arr['id'];
+        unset($arr['parent_id']);
+        unset($arr['id']);
+        $model = $this->_categoryModel->findOne([
+            'origin_mysql_id' => $origin_mysql_id
+        ]);
+        if (!$model['origin_mysql_id']) {
+            $model = new $this->_categoryModelName;
+            $model->created_at = time();
+        }
+        
+        $model->origin_mysql_id = $origin_mysql_id;
+        $model->origin_mysql_parent_id = $origin_mysql_parent_id;
+        //$arr = $this->serializeSaveData($arr);
+        $saveStatus = Yii::$service->helper->ar->save($model, $arr);
+        
+        $originUrl = $originUrlKey.'?'.$this->getPrimaryKey() .'='. $model->_id;
+        $originUrlKey = isset($model['url_key']) ? $model['url_key'] : '';
+        $defaultLangTitle = Yii::$service->fecshoplang->getDefaultLangAttrVal($arr['name'], 'name');
+        $urlKey = Yii::$service->url->saveRewriteUrlKeyByStr($defaultLangTitle, $originUrl, $originUrlKey);
+        $model->url_key = $urlKey;
+        $model->save();
     }
 
     /**
@@ -263,6 +307,7 @@ class CategoryMongodb extends Service implements CategoryInterface
                     $idKey    => $idVal,
                     'level'   => $level,
                     'name'    => Yii::$service->fecshoplang->getLangAttrVal($cate['name'], 'name', $lang),
+                    'thumbnail_image' => $cate['thumbnail_image'],
                 ];
                 if ($appserver) {
                     $arr[$idVal]['url'] = '/catalog/category/'.$idVal;

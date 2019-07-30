@@ -20,7 +20,7 @@ return [
           * true： 代表只显示一个sku
           * false: 代表产品全部显示
           */
-        'productSpuShowOnlyOneSku' => true,
+        'productSpuShowOnlyOneSku' => false,
         // 'customAttrGroup' => [], 详细参看@common/config/fecshop_local_services/Product.php 里面的配置
         // 子服务
         'childService' => [
@@ -43,7 +43,7 @@ return [
                   * 范围：1-100，数越大，质量越高，图片文件的容量越大, 数越低，图片越模糊，容量越小
                   */
                 'jpegQuality' => 80,
-                //'allowImgType' 	=> [ # 允许的图片类型
+                //    'allowImgType' 	=> [ # 允许的图片类型
                 //    'image/jpeg',
                 //    'image/gif',
                 //    'image/png',
@@ -63,6 +63,12 @@ return [
                 'reviewOnlyOrderedProduct' => true,
                 // 订单创建后，多久内可以进行评论，超过这个期限将不能评论产品（单位为月）, 当 reviewOnlyOrderedProduct 设置为true时有效。
                 'reviewMonth' => 6,
+            ],
+            'attr' => [
+                'class' => 'fecshop\services\product\Attr',
+            ],
+            'attrGroup' => [
+                'class' => 'fecshop\services\product\AttrGroup',
             ],
             'favorite' => [
                 'class' => 'fecshop\services\product\Favorite',

@@ -15,27 +15,34 @@ return [
                 'urlKeyTags' => [
 					'dashboard_main' 								=> 'Dashboard-Main',
 					'catalog_product_info_manager' 			=> 'Catalog-Product',
+                    'catalog_product_attr_manager' 		    => 'Catalog-Product-Attr',
+                    'catalog_product_attr_group_manager' 		=> 'Catalog-Product-Attr-Group',
 					'catalog_product_review_manager' 		=> 'Catalog-Product-Review',
 					'catalog_product_search_manager' 		=> 'Catalog-Product-Search',
 					'catalog_product_favorite_manager' 	=> 'Catalog-Product-Favorite',
 					'catalog_category_manager' 				=> 'Catalog-Category',
-					'catalog_url_rewrite_manager' 			=> 'Catalog-Url-Rewrite',
+					'catalog_url_rewrite_manager' 			    => 'Catalog-Url-Rewrite',
                     'sales_order_manager' 						=> 'Sales-Order',
 					'sales_coupon_manager' 					    => 'Sales-Coupon',
-                    'customer_account' 							=> 'Customer-Account',
-					'customer_newsletter' 						=> 'Customer-Newsletter',
-                    'cms_page' 										=> 'CMS-Page',
+                    'customer_account' 							    => 'Customer-Account',
+					'customer_newsletter' 						    => 'Customer-Newsletter',
+                    'cms_page' 										    => 'CMS-Page',
 					'cms_static_block' 								=> 'CMS-StaticBlock',
 					'dashboard_user_myaccount' 				=> 'Dashboard-User-MyAccount',
 					'dashboard_user_account_manager' 	=> 'Dashboard-User-Account',
-					'dashboard_user_role' 						=> 'Dashboard-User-Role',
+					'dashboard_user_role' 						    => 'Dashboard-User-Role',
 					'dashboard_user_resource' 				    => 'Dashboard-User-Resource',
 					'dashboard_log_info' 							=> 'Dashboard-Log-Info',
 					'dashboard_log_manager' 					=> 'Dashboard-Log',
 					'dashboard_cache' 							    => 'Dashboard-Cache',
 					'dashboard_config' 							    => 'Dashboard-Config',
 					'dashboard_error_handler'					=> 'Dashboard-ErrorHandler',
-
+                    
+                    'config_base_manager' 					    => 'Config-Base',
+                    'config_appfront_manager' 					=> 'Config-Appfront',
+                    'config_apphtml5_manager' 					=> 'Config-Apphtml5',
+                    'config_appserver_manager' 				=> 'Config-Appserver',
+                    'config_appadmin_manager' 				=> 'Config-Appadmin',
 				],
             ],
             'roleUrlKey' => [
@@ -69,6 +76,14 @@ return [
                                         'label' => 'Product Info',
                                         'url_key' => '/catalog/productinfo/index',
                                     ],
+                                    'product_attr_manager' => [
+                                        'label' => '产品属性管理',
+                                        'url_key' => '/catalog/productattr/manager',
+                                    ],
+                                    'product_attr_group_manager' => [
+                                        'label' => '产品属性组管理',
+                                        'url_key' => '/catalog/productattrgroup/manager',
+                                    ],
                                     // 三级类
                                     'product_review_manager' => [
                                         'label' => 'Product Reveiew',
@@ -83,7 +98,17 @@ return [
                             ],
                             'category_manager' => [
                                 'label' => 'Manager Category',
-                                'url_key' => '/catalog/category/index',
+                                'child' => [
+                                    // 三级类
+                                    'category_info_manager' => [
+                                        'label' => 'Category Info',
+                                        'url_key' => '/catalog/category/index',
+                                    ],
+                                    'category_info_config' => [
+                                        'label' => '分类配置',
+                                        'url_key' => '/catalog/category/index',
+                                    ],
+                                ],  
                             ],
                             'urlrewrite_manager' => [
                                 'label' => 'URL Rewrite',
@@ -101,6 +126,10 @@ return [
                                         'label' => 'Manager Order',
                                         'url_key' => '/sales/orderinfo/manager',
                                     ],
+                                    'order_config' => [
+                                        'label' => '订单参数配置',
+                                        'url_key' => '/sales/orderinfo/manager',
+                                    ],
                                 ],
                             ],
                             'coupon' => [
@@ -108,6 +137,111 @@ return [
                                 'url_key' => '/sales/coupon/manager',
                             ],
                         ],
+                    ],
+                    'config' => [
+                        'label' => '网站配置',
+                        'child' => [
+                            'services' => [
+                                'label' => '基础配置',
+                                'child' => [
+                                    'base_manager' => [
+                                        'label' => '基础配置',
+                                        'url_key' => '/config/base/manager',
+                                    ],
+                                    'service_manager' => [
+                                        'label' => 'Service数据库配置',
+                                        'url_key' => '/config/service/db',
+                                    ],
+                                    'search' => [
+                                        'label' => '搜索引擎配置',
+                                        'url_key' => '/config/search/manager',
+                                    ],
+                                    'mutillang' => [
+                                        'label' => '多语言配置',
+                                        'url_key' => '/config/mutillang/manager',
+                                    ],
+                                    'currency' => [
+                                        'label' => '货币配置',
+                                        'url_key' => '/config/currency/manager',
+                                    ],
+                                    
+                                ],
+                            ],
+                            
+                            'appfront_config' => [
+                                'label' => 'Appfront配置',
+                                'child' => [
+                                    'cache' => [
+                                        'label' => '缓存配置',
+                                        'url_key' => '/config/appfrontcache/manager',
+                                    ],
+                                    'store' => [
+                                        'label' => 'Store配置',
+                                        'url_key' => '/config/appfrontstore/manager',
+                                    ],
+                                    /*
+                                    'theme' => [
+                                        'label' => '模板配置',
+                                        'url_key' => '/sales/orderinfo/manager',
+                                    ],
+                                    'theme' => [
+                                        'label' => '菜单配置',
+                                        'url_key' => '/sales/orderinfo/manager',
+                                    ],
+                                    'payment' => [
+                                        'label' => '支付配置',
+                                        'url_key' => '/sales/orderinfo/manager',
+                                    ],
+                                    'wx' => [
+                                        'label' => '微信小程序配置',
+                                        'url_key' => '/sales/orderinfo/manager',
+                                    ],
+                                    'email' => [
+                                        'label' => '邮件配置',
+                                        'url_key' => '/sales/orderinfo/manager',
+                                    ],
+                                    'yanzhengma' => [
+                                        'label' => '验证码配置',
+                                        'url_key' => '/sales/orderinfo/manager',
+                                    ],
+                                    */
+                                    
+                                    
+                                ],
+                            ],
+                            'apphtml5_config' => [
+                                'label' => 'Apphtml5配置',
+                                'child' => [
+                                    'cache' => [
+                                        'label' => '缓存配置',
+                                        'url_key' => '/config/apphtml5cache/manager',
+                                    ], 
+                                    'store' => [
+                                        'label' => 'Store配置',
+                                        'url_key' => '/config/apphtml5store/manager',
+                                    ],
+                                ],
+                            ],
+                            'appserver_config' => [
+                                'label' => 'Appserver配置',
+                                'child' => [
+                                    'cache' => [
+                                        'label' => '缓存配置',
+                                        'url_key' => '/config/appservercache/manager',
+                                    ], 
+                                    'store' => [
+                                        'label' => 'Store配置',
+                                        'url_key' => '/config/appserverstore/manager',
+                                    ],
+                                    'store_lang' => [
+                                        'label' => 'Store语言配置',
+                                        'url_key' => '/config/appserverstorelang/manager',
+                                    ],
+                                    
+                                ],
+                            ],
+                        ],
+                        
                     ],
                     'customer' => [
                         'label' => 'Manager User',

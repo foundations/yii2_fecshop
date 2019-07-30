@@ -109,6 +109,35 @@ class Item extends Service
 
         return $items;
     }
+    
+    /**
+     * @param $order_ids | array
+     * @param $onlyFromTable | 从数据库取出不做处理
+     * @return array
+     *               通过order_id 得到所有的items
+     */
+    protected function actionGetByOrderIds($order_ids, $onlyFromTable = false)
+    {
+        $items = $this->_itemModel->find()->asArray()->where([
+            'in', 'order_id', $order_ids,
+        ])->all();
+        if ($onlyFromTable) {
+            return $items;
+        }
+        foreach ($items as $k=>$one) {
+            $product_id = $one['product_id'];
+            $product_one = Yii::$service->product->getByPrimaryKey($product_id);
+
+            $productSpuOptions = $this->getProductSpuOptions($product_one);
+            //var_dump($productSpuOptions);
+            $items[$k]['spu_options'] = $productSpuOptions;
+            $items[$k]['custom_option'] = $product_one['custom_option'];
+            $items[$k]['custom_option_info'] = $this->getProductOptions($items[$k]);
+            $items[$k]['image'] = $this->getProductImage($product_one, $one);
+        }
+
+        return $items;
+    }
 
     /**
      * @param $product_one | Object, product model
@@ -172,23 +201,49 @@ class Item extends Service
      * spu attr 的值是不同的，譬如对应鞋子，size 和 color 就是spu attr，对于同一款鞋子，他们
      * 是同一个spu，对于尺码，颜色不同的鞋子，是不同的sku，他们的spu attr 就是 color 和 size。
      */
+    /**
+     * @param $productOb | Object，类型：\fecshop\models\mongodb\Product
+     * 得到产品的spu对应的属性以及值。
+     * 概念 - spu options：当多个产品是同一个spu，但是不同的sku的时候，他们的产品表里面的
+     * spu attr 的值是不同的，譬如对应鞋子，size 和 color 就是spu attr，对于同一款鞋子，他们
+     * 是同一个spu，对于尺码，颜色不同的鞋子，是不同的sku，他们的spu attr 就是 color 和 size。
+     */
     protected function getProductSpuOptions($productOb)
     {
         $custom_option_info_arr = [];
+        $productPrimaryKey = Yii::$service->product->getPrimaryKey();
+        $productAttrGroup = $productOb['attr_group'];
         if (isset($productOb['attr_group']) && !empty($productOb['attr_group'])) {
-            $productAttrGroup = $productOb['attr_group'];
-            Yii::$service->product->addGroupAttrs($productAttrGroup);
-            $productOb = Yii::$service->product->getByPrimaryKey((string) $productOb['_id']);
-            $spuArr = Yii::$service->product->getSpuAttr($productAttrGroup);
-            if (is_array($spuArr) && !empty($spuArr)) {
-                foreach ($spuArr as $spu_attr) {
-                    if (isset($productOb[$spu_attr]) && !empty($productOb[$spu_attr])) {
-                        $custom_option_info_arr[$spu_attr] = $productOb[$spu_attr];
+            $spuArr     = Yii::$service->product->getSpuAttr($productAttrGroup);
+            //var_dump($productOb['attr_group_info']);
+            // mysql存储
+            if (isset($productOb['attr_group_info']) && is_array($productOb['attr_group_info'])) {
+                $attr_group_info = $productOb['attr_group_info'];
+                if (is_array($spuArr) && !empty($spuArr)) {
+                    foreach ($spuArr as $spu_attr) {
+                        if (isset($attr_group_info[$spu_attr]) && !empty($attr_group_info[$spu_attr])) {
+                            // 进行翻译。
+                            $spu_attr_label = Yii::$service->page->translate->__($spu_attr);
+                            $spu_attr_val = Yii::$service->page->translate->__($attr_group_info[$spu_attr]);
+                            $custom_option_info_arr[$spu_attr_label] = $spu_attr_val;
+                        }
+                    }
+                }
+            } else { // mongodb类型
+                Yii::$service->product->addGroupAttrs($productAttrGroup);
+                $productOb  = Yii::$service->product->getByPrimaryKey((string) $productOb[$productPrimaryKey ]);
+                if (is_array($spuArr) && !empty($spuArr)) {
+                    foreach ($spuArr as $spu_attr) {
+                        if (isset($productOb[$spu_attr]) && !empty($productOb[$spu_attr])) {
+                            // 进行翻译。
+                            $spu_attr_label = Yii::$service->page->translate->__($spu_attr);
+                            $spu_attr_val = Yii::$service->page->translate->__($productOb[$spu_attr]);
+                            $custom_option_info_arr[$spu_attr_label] = $spu_attr_val;
+                        }
                     }
                 }
             }
         }
-
         return $custom_option_info_arr;
     }
 

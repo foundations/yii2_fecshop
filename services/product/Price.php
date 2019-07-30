@@ -238,7 +238,7 @@ class Price extends Service
      */
     protected function actionSpecialPriceisActive($price, $special_price, $special_from, $special_to)
     {
-        if (!$special_price) {
+        if (!$special_price || $special_price == 0.00) {  // 浮点数需要这样判断float 0
             return false;
         }
         if ($this->ifSpecialPriceGtPriceFinalPriceEqPrice) {
@@ -283,6 +283,10 @@ class Price extends Service
      */
     protected function actionGetCurrentCurrencyProductPriceInfo($price, $special_price, $special_from, $special_to)
     {
+        $price = (float)$price;
+        $special_price = (float)$special_price;
+        $special_from = (int)$special_from;
+        $special_to = (int)$special_to;
         $this->currentOff = 0;
         $price_info = $this->formatPrice($price);
         $return['price'] = [

@@ -45,12 +45,11 @@ class AppadminbaseBlockEdit extends BaseObject
         $this->_param = CRequest::param();
         $this->_primaryKey = $this->_service->getPrimaryKey();
         $id = $this->_param[$this->_primaryKey];
-
         $this->_one = $this->_service->getByPrimaryKey($id);
     }
     
-    public function getVal($name, $column){
-        
+    public function getVal($name, $column)
+    {
         return ($this->_one[$name] || $this->_one[$name] === 0) ? $this->_one[$name] : $column['default'];
     }  
 
@@ -83,6 +82,7 @@ EOF;
         $idsji = 0;
         foreach ($editArr as $column) {
             $name = $column['name'];
+            $remark = Yii::$service->page->translate->__($column['remark']);
             $require = $column['require'] ? 'required' : '';
             $label = $column['label'] ? $column['label'] : $this->_one->getAttributeLabel($name);
             $display = isset($column['display']) ? $column['display'] : '';
@@ -90,8 +90,8 @@ EOF;
                 $display = ['type' => 'inputString'];
             }
             //var_dump($this->_one['id']);
-            $value = $this->getVal($name, $column);
             
+            $value = $this->getVal($name, $column);
             $display_type = isset($display['type']) ? $display['type'] : 'inputString';
             if ($display_type == 'inputString') {
                 $isLang = isset($display['lang']) ? $display['lang'] : false;
@@ -109,11 +109,14 @@ EOF;
                         $tabLangTitle .= '<li><a href="javascript:;"><span>'.$lang.'</span></a></li>';
                         $langAttrName = Yii::$service->fecshoplang->getLangAttrName($name, $lang);
                         $t_val = isset($value[$langAttrName]) ? $value[$langAttrName] : '';
+                        // 对于含有 " 的字符串进行处理
+                        $t_val =  str_replace('"', '&quot;', $t_val) ;
                         $tabLangInput .= '<div>
 								<p class="edit_p">
 									<label>'.$label.'['.$lang.']：</label>
 									<input type="text"  value="'.$t_val.'" size="30" name="'.$this->_editFormData.'['.$name.']['.$langAttrName.']" class="textInput '.$inputStringLangRequire.' ">
-								</p>
+                                    <span class="remark-text">'.$remark .'</span>
+                                </p>
 
 							</div>';
                     }
@@ -135,11 +138,14 @@ EOF;
 						</div>
 EOF;
                 } else {
+                    // 对于含有 " 的字符串进行处理
+                    $value =  str_replace('"', '&quot;', $value) ;
                     $str .= <<<EOF
 							<p class="edit_p">
 								<label>{$label}：</label>
 								<input type="text"  value="{$value}" size="30" name="{$this->_editFormData}[{$name}]" class="textInput {$require} ">
-							</p>
+                                <span class="remark-text">{$remark}</span>
+                            </p>
 EOF;
                 }
             } elseif ($display_type == 'inputDate') {
@@ -151,7 +157,8 @@ EOF;
 						<p class="edit_p">
 							<label>{$label}：</label>
 							<input type="text"  value="{$valueData}" size="30" name="{$this->_editFormData}[{$name}]" class="date textInput {$require} ">
-						</p>
+                            <span class="remark-text">{$remark}</span>
+                        </p>
 EOF;
             } elseif ($display_type == 'inputDateTime') {
                 if ($value && !is_numeric($value)) {
@@ -162,20 +169,23 @@ EOF;
 						<p class="edit_p">
 							<label>{$label}：</label>
 							<input type="text" datefmt="yyyy-MM-dd HH:mm:ss"  value="{$valueData}" size="30" name="{$this->_editFormData}[{$name}]" class="date textInput {$require} ">
-						</p>
+                            <span class="remark-text">{$remark}</span>
+                        </p>
 EOF;
             } elseif ($display_type == 'inputEmail') {
                 $str .= <<<EOF
 						<p class="edit_p">
 							<label>{$label}：</label>
 							<input type="text"  value="{$value}" size="30" name="{$this->_editFormData}[{$name}]" class="email textInput {$require} ">
-						</p>
+                            <span class="remark-text">{$remark}</span>
+                        </p>
 EOF;
             } elseif ($display_type == 'stringText') {
                 $str .= <<<EOF
 						<p class="edit_p">
 							<label>{$label}：</label>
 							{$value}
+                            <span class="remark-text">{$remark}</span>
 						</p>
 EOF;
             } elseif ($display_type == 'inputPassword') {
@@ -183,7 +193,8 @@ EOF;
 						<p class="edit_p">
 							<label>{$label}：</label>
 							<input type="password"  value="" size="30" name="{$this->_editFormData}[{$name}]" class=" textInput {$require} ">
-						</p>
+                            <span class="remark-text">{$remark}</span>
+                        </p>
 EOF;
             } elseif ($display_type == 'select') {
                 $data = isset($display['data']) ? $display['data'] : '';
@@ -192,7 +203,7 @@ EOF;
                 $select_str = '';
                 if (is_array($data)) {
                     $select_str .= <<<EOF
-								<select class="combox {$require}" name="{$this->_editFormData}[{$name}]" >
+								<select class="select_{$name} combox {$require}" name="{$this->_editFormData}[{$name}]" >
 EOF;
                     $select_str .= '<option value="">'.$label.'</option>';
                     foreach ($data as $k => $v) {
@@ -210,6 +221,7 @@ EOF;
 						<p class="edit_p">
 							<label>{$label}：</label>
 								{$select_str}
+                                <span class="remark-text">{$remark}</span>
 						</p>
 EOF;
             } elseif ($display_type == 'editSelect') {
@@ -244,6 +256,7 @@ EOF;
 						<p class="edit_p">
 							<label>{$label}：</label>
 								{$select_str}
+                                <span class="remark-text">{$remark}</span>
 						</p>
                         <script type="text/javascript">
                             $('#{$selectId}').editableSelect(
@@ -252,6 +265,11 @@ EOF;
                         </script>
 EOF;
             } elseif ($display_type == 'textarea') {
+                $notEditor = isset($display['notEditor']) ? $display['notEditor'] : false;
+                $edittorClass='editor';
+                if ($notEditor) {
+                    $edittorClass='';
+                }
                 $rows = isset($display['rows']) ? $display['rows'] : 15;
                 $cols = isset($display['cols']) ? $display['cols'] : 110;
                 $isLang = isset($display['lang']) ? $display['lang'] : false;
@@ -275,10 +293,10 @@ EOF;
                         $tabLangTextarea .= '
 						<div>
 							<fieldset id="fieldset_table_qbe">
-								<legend style="color:#cc0000">'.$label.'['.$lang.']：</legend>
+								<legend style="color:#009688">'.$label.'['.$lang.']：</legend>
 								<div>
 									<div class="unit">
-										<textarea '.$uploadImgUrl.' '.$uploadFlashUrl.'  '.$uploadLinkUrl.'  '.$uploadMediaUrl.'  class="editor '.$inputStringLangRequire.'"  rows="'.$rows.'" cols="'.$cols.'" name="'.$this->_editFormData.'['.$name.']['.$langAttrName.']" >'.$value[$langAttrName].'</textarea>
+										<textarea '.$uploadImgUrl.' '.$uploadFlashUrl.'  '.$uploadLinkUrl.'  '.$uploadMediaUrl.'  class="'.$edittorClass.' '.$inputStringLangRequire.'"  rows="'.$rows.'" cols="'.$cols.'" name="'.$this->_editFormData.'['.$name.']['.$langAttrName.']"  style="width:98%" >'.$value[$langAttrName].'</textarea>
 									</div>
 								</div>
 							</fieldset>
@@ -295,6 +313,7 @@ EOF;
 							</div>
 							<div class="tabsContent" style="">
 								{$tabLangTextarea}
+                                <span class="remark-text">{$remark}</span>
 							</div>
 							<div class="tabsFooter">
 								<div class="tabsFooterContent"></div>
@@ -304,10 +323,11 @@ EOF;
                 } else {
                     $this->_textareas .= <<<EOF
 						<fieldset id="fieldset_table_qbe">
-							<legend style="color:#cc0000">{$label}：</legend>
+							<legend style="color:#009688">{$label}：</legend>
 							<div>
-								<textarea  class="editor" name="{$this->_editFormData}[{$name}]" rows="{$rows}" cols="{$cols}" name="{$this->_editFormData}[{$name}]"  {$uploadImgUrl}  {$uploadFlashUrl}  {$uploadLinkUrl}   {$uploadMediaUrl} >{$value}</textarea>
-							</div>
+								<textarea  class="{$edittorClass}" name="{$this->_editFormData}[{$name}]" rows="{$rows}" cols="{$cols}" name="{$this->_editFormData}[{$name}]"  {$uploadImgUrl}  {$uploadFlashUrl}  {$uploadLinkUrl}   {$uploadMediaUrl} >{$value}</textarea>
+                                <span class="remark-text">{$remark}</span>
+                            </div>
 						</fieldset>
 EOF;
                 }

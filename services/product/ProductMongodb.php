@@ -79,7 +79,37 @@ class ProductMongodb extends Service implements ProductInterface
             }
         }
     }
+    /**
+     * @param $ids | Array
+     * 通过产品ids得到产品sku
+     */
+    public function getSkusByIds($ids)
+    {
+        $skus = [];
+        $_id = $this->getPrimaryKey();
+        if (!empty($ids) && is_array($ids)) {
+            $ids_ob_arr = [];
+            foreach ($ids as $id) {
+                $ids_ob_arr[] = new \MongoDB\BSON\ObjectId($id);
+            }
+            $filter = [
+                'where'            => [
+                    ['in', $_id, $ids_ob_arr],
 
+                ],
+                'asArray' => true,
+            ];
+            $coll = $this->coll($filter);
+            $data = $coll['coll'];
+            if (!empty($data) && is_array($data)) {
+                foreach ($data as $one) {
+                    $skus[(string) $one[$_id]] = $one['sku'];
+                }
+            }
+        }
+
+        return $skus;
+    }
     /**
      * @param $spu|array
      * @param $returnArr|bool 返回的数据是否是数组格式，如果设置为
@@ -125,6 +155,22 @@ class ProductMongodb extends Service implements ProductInterface
             'coll' => $query->all(),
             'count'=> $query->limit(null)->offset(null)->count(),
         ];
+    }
+    
+    public function spuCollData($select, $spuAttrArr, $spu)
+    {
+        $select = array_merge($select, $spuAttrArr);
+        //var_dump($select);exit;
+        $filter = [
+            'select'    => $select,
+            'where'            => [
+                ['spu' => $spu],
+            ],
+            'asArray' => true,
+        ];
+        $data = Yii::$service->product->coll($filter);
+        
+        return $data['coll'];
     }
 
     /**
@@ -309,21 +355,22 @@ class ProductMongodb extends Service implements ProductInterface
         $one['final_price'] = Yii::$service->product->price->getFinalPrice($one['price'], $one['special_price'], $one['special_from'], $one['special_to']);
         $one['score'] = (int) $one['score'];
         unset($one['_id']);
+        unset($one['custom_option']);
+        /**
+         * 如果 $one['custom_option'] 不为空，则计算出来库存总数，填写到qty
+         */
+        //if (is_array($one['custom_option']) && !empty($one['custom_option'])) {
+        //    $custom_option_qty = 0;
+        //    foreach ($one['custom_option'] as $co_one) {
+        //        $custom_option_qty += $co_one['qty'];
+        //    }
+        //    $one['qty'] = $custom_option_qty;
+        //}
         /**
          * 保存产品
          */
         $saveStatus = Yii::$service->helper->ar->save($model, $one);
-        /**
-         * 如果 $one['custom_option'] 不为空，则计算出来库存总数，填写到qty
-         */
-        if (is_array($one['custom_option']) && !empty($one['custom_option'])) {
-            $custom_option_qty = 0;
-            foreach ($one['custom_option'] as $co_one) {
-                $custom_option_qty += $co_one['qty'];
-            }
-            $model->qty = $custom_option_qty;
-        }
-        $saveStatus = Yii::$service->helper->ar->save($model, $one);
+        
         // 自定义url部分
         if ($originUrlKey) {
             $originUrl = $originUrlKey.'?'.$this->getPrimaryKey() .'='. $primaryVal;
@@ -345,7 +392,129 @@ class ProductMongodb extends Service implements ProductInterface
 
         return $model;
     }
+    
+    
+    /**
+     * @param $one|array , 产品数据数组
+     * 用于将mysql的数据，同步到mongodb中 
+     */
+    public function sync($one)
+    {
+        if (!$this->initSave($one)) {
+            return false;
+        }
+        $defaultLangTitle = Yii::$service->fecshoplang->getDefaultLangAttrVal($one['name'], 'name');
+        $product_one = $this->_productModel->find()->where([
+            'sku' => $one['sku'],
+        ])->one();
+        if ($product_one['sku']) {
+            $model = $product_one;
+        } else {
+            $model = new $this->_productModelName();
+            $model->created_at = time();
+            $primaryVal = new \MongoDB\BSON\ObjectId();
+            $model->{$this->getPrimaryKey()} = $primaryVal;
+        }
+        if (isset($one['attr_group']) && $one['attr_group']) {
+            $this->addGroupAttrs($one['attr_group']);
+        }
+        
+        // 保存mongodb表中的产品id到字段origin_mongo_id
+        $origin_mysql_id = $one['id'];
+        $model->origin_mysql_id = $origin_mysql_id;
+        $model->updated_at = time();
+        // 计算出来产品的最终价格。
+        $one['final_price'] = Yii::$service->product->price->getFinalPrice($one['price'], $one['special_price'], $one['special_from'], $one['special_to']);
+        $one['score'] = (int) $one['score'];
+        unset($one['id']);
+        unset($one['custom_option']);
+        /**
+         * 如果 $one['custom_option'] 不为空，则计算出来库存总数，填写到qty
+         */
+        //if (is_array($one['custom_option']) && !empty($one['custom_option'])) {
+        //    $custom_option_qty = 0;
+        //    foreach ($one['custom_option'] as $co_one) {
+        //        $custom_option_qty += $co_one['qty'];
+        //    }
+        //    $one['qty'] = $custom_option_qty;
+        //}
+        
+        /**
+         * 保存产品
+         */
+        //$one = $this->serializeSaveData($one);
+        // 得到对应的mongodb的分类id数组
+        if ($c = $this->syncGetProductCategorys($one['category'])){
+            var_dump($c);
+            $one['category'] = $c;
+        }
+        
+        $saveStatus = Yii::$service->helper->ar->save($model, $one);
+        $product_id = (string)$model->{$this->getPrimaryKey()};
+        
+        
+        // 自定义url部分
+        $originUrlKey = 'catalog/product/index';
+        $originUrl = $originUrlKey.'?'.$this->getPrimaryKey() .'='. $product_id;
+        $originUrlKey = isset($one['url_key']) ? $one['url_key'] : '';
+        //var_dump([$defaultLangTitle, $originUrl, $originUrlKey]);
+        //echo $defaultLangTitle;
+        $urlKey = Yii::$service->url->saveRewriteUrlKeyByStr($defaultLangTitle, $originUrl, $originUrlKey);
+        $model->url_key = $urlKey;
+        $model->save();
+        /**
+         * 更新产品库存。
+         */
+        Yii::$service->product->stock->saveProductStock($product_id, $one);
+        /**
+         * 更新产品信息到搜索表。
+         */
+        Yii::$service->search->syncProductInfo([$product_id]);
+        
+        return $model;
+    }
+    
+    /**
+     * @param $mysqlCategorys
+     * 同步数据，得到mongodb category arr
+     */
+    protected function syncGetProductCategorys($mysqlCategorys)
+    {
+        if (empty($mysqlCategorys) || !is_array($mysqlCategorys)) {
+            return null;
+        }
+        
+        Yii::$service->category->changeToMongoStorage();
+        $filter = [
+            'where' => [
+                ['in', 'origin_mysql_id', $mysqlCategorys]
+            ],
+            'numPerPage' 	=> 10000,
+     		'pageNum'		=> 1,
+        ];
+        $data = Yii::$service->category->coll($filter);
+        $cIds = [];
+        if (is_array($data['coll']) || !empty($data['coll'])) {
+            foreach ($data['coll'] as $one) {
+                $cIds[] = (string)$one['_id'];
+            }
+        }
+        return $cIds;
+    }
+    
+    
+    
+    
+    
+    public function getCategoryIdsByProductId($product_id)
+    {
+        $product = Yii::$service->product->getByPrimaryKey($product_id);
+        if (isset($product['category']) && !empty($product['category']) && is_array($product['category'])) {
+            return $product['category'];
+        }
 
+        return [];
+    }
     /**
      * @param $one|array
      * 对保存的数据进行数据验证
@@ -390,14 +559,14 @@ class ProductMongodb extends Service implements ProductInterface
 
             return false;
         }
-        if (is_array($one['custom_option']) && !empty($one['custom_option'])) {
-            $new_custom_option = [];
-            foreach ($one['custom_option'] as $k=>$v) {
-                $k = preg_replace('/[^A-Za-z0-9\-_]/', '', $k);
-                $new_custom_option[$k] = $v;
-            }
-            $one['custom_option'] = $new_custom_option;
-        }
+        //if (is_array($one['custom_option']) && !empty($one['custom_option'])) {
+        //    $new_custom_option = [];
+        //    foreach ($one['custom_option'] as $k=>$v) {
+        //        $k = preg_replace('/[^A-Za-z0-9\-_]/', '', $k);
+        //        $new_custom_option[$k] = $v;
+        //    }
+        //    $one['custom_option'] = $new_custom_option;
+        //}
 
         return true;
     }
@@ -611,6 +780,7 @@ class ProductMongodb extends Service implements ProductInterface
         if (empty($where)) {
             return [];
         }
+        //var_dump($filter);
         if (!isset($where['status'])) {
             $where['status'] = $this->getEnableStatus();
         }
@@ -621,10 +791,16 @@ class ProductMongodb extends Service implements ProductInterface
         $group['_id'] = $filter['group'];
         $project = [];
         foreach ($select as $column) {
+            if ($column == '_id'){
+                continue;
+            }
             $project[$column] = 1;
             $group[$column] = ['$first' => '$'.$column];
         }
         $group['product_id'] = ['$first' => '$product_id'];
+        
+        //var_dump($group);
+        //exit;
         $langCode = Yii::$service->store->currentLangCode;
         
         $name_lang  = Yii::$service->fecshoplang->getLangAttrName('name', $langCode);
@@ -656,6 +832,7 @@ class ProductMongodb extends Service implements ProductInterface
                 '$limit'    => Yii::$service->product->categoryAggregateMaxCount,
             ],
         ];
+        //var_dump($pipelines);exit;
         // ['cursor' => ['batchSize' => 2]]
         $product_data = $this->_productModel->getCollection()->aggregate($pipelines);
         $product_total_count = count($product_data);
@@ -700,7 +877,7 @@ class ProductMongodb extends Service implements ProductInterface
             ],
         ];
         $filter_data = $this->_productModel->getCollection()->aggregate($pipelines);
-
+        
         return $filter_data;
     }
 
@@ -740,6 +917,16 @@ class ProductMongodb extends Service implements ProductInterface
                 $one['reviw_rate_star_info_lang']   = $c;
                 $one->save();
             }
+        }
+    }
+    
+    public function updateProductFavoriteCount($product_id, $count)
+    {
+        $product = $this->_productModel->findOne($product_id);
+        $productPrimaryKey = Yii::$service->product->getPrimaryKey();
+        if ($product[$productPrimaryKey]) {
+            $product->favorite_count = $count;
+            $product->save();
         }
     }
 
