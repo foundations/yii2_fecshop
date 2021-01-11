@@ -78,6 +78,12 @@ class Session extends Service
             }
             */
         }
+        $appName = Yii::$service->helper->getAppName();
+        $accessTokenTimeoutConfig = Yii::$app->store->get($appName.'_base', 'customer_access_token_timeout');
+        $accessTokenUpdateTimeLimitConfig = Yii::$app->store->get($appName.'_base', 'customer_access_token_update_time_limit');
+        $this->timeout = $accessTokenTimeoutConfig ? $accessTokenTimeoutConfig : 86400 ;
+        $this->updateTimeLimit = $accessTokenUpdateTimeLimitConfig ? $accessTokenUpdateTimeLimitConfig : 600 ;
+        // var_dump([$this->timeout, $this->updateTimeLimit]);
     }
     
     /**
@@ -105,6 +111,7 @@ class Session extends Service
             // 3.把 $this->_uuid 写入到 response 的header里面
             Yii::$app->response->getHeaders()->set($uuidName, $this->_uuid);
         }
+        
         return $this->_uuid;
     }
     

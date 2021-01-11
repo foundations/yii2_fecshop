@@ -43,7 +43,7 @@ class Menu extends Service
      * home,frontCustomMenu,productCategory,behindCustomMenu.
      * 得到网站的分类导航栏菜单。
      */
-    protected function actionGetMenuData()
+    public function getMenuData()
     {
         $this->_homeUrl = CUrl::getHomeUrl();
         $arr = [];
@@ -90,6 +90,9 @@ class Menu extends Service
         $cMenu = [];
         if (is_array($customMenu) && !empty($customMenu)) {
             foreach ($customMenu as $k=>$menu) {
+				if (!is_array($menu)) {
+					continue;
+				}
                 $name           = Yii::$service->page->translate->__($menu['name']);
                 $menu['name']   = $name;
                 $urlPath        = $menu['urlPath'];

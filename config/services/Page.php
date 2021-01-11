@@ -24,10 +24,10 @@ return [
                 'class' =>  'fecshop\services\page\Asset',
                 // js 版本号，当更改了js，将这里的版本号+1，生成的js链接就会更改为  xxx.js?v=2 ,
                 // 这样做的好处是，js的链接url改变了，可以防止浏览器继续使用缓存，而不是重新加载js文件的问题。
-                'jsVersion'        => 1,
+                //'jsVersion'        => 1,
                 // css 版本号，原理同js
                 // 关于版本号更多的信息，请参看：http://www.fancyecommerce.com/2017/04/17/css-js-%E5%90%8E%E9%9D%A2%E5%8A%A0%E7%89%88%E6%9C%AC%E5%8F%B7%E7%9A%84%E5%8E%9F%E5%9B%A0%E5%92%8C%E6%96%B9%E5%BC%8F/
-                'cssVersion'    => 1,
+                //'cssVersion'    => 1,
                 /**
                  * @var string the root directory string the published asset files.
                  * 设置: js和css的发布路径，默认在web路径下的assets文件夹下，您可以放到其他的文件路径，然后用独立的jscss域名做指向
@@ -41,11 +41,6 @@ return [
                  * 这样就可以将js和css文件使用独立的域名了【把域名对应的地址对应到$basePath】。
                  */
                 'baseUrl' => '@web/assets',
-                // 是否每次刷新，强制发布js css到线上？ 开发环境设置为true，正式环境设置为false（你也可以设置为true，但是每次刷新都会复制js和css文件到@app/web/assets/下面，耗费资源）
-                // 线上设置成false，每次访问不会强制复制js和css到发布环境，可以节省资源，但是，当css和js更新后，
-                // 需要去@app/web/assets/ 路径下，手动清空所有的文件夹和文件，当assets路径下找不到文件，就会重新复制库包里的js和css到web环境，
-                // 这是属于Yii2的知识范畴。
-                'forceCopy' => true,
                 
                 
                 /* js and css config example:
@@ -204,17 +199,17 @@ return [
             'trace' => [ 
                 'class' => 'fecshop\services\page\Trace',
                 // 关闭和打开Trace功能，默认关闭，打开前，请先联系申请下面的信息，QQ：2358269014
-                'traceJsEnable' => false,
+                //'traceJsEnable' => false,
                 // trace系统的 站点唯一标示  website id
-                'website_id'    => '',
+                //'website_id'    => '',
                 // trace系统的Token，当fecshop给trace通过curl发送数据的时候，需要使用该token进行安全认证。
-                'access_token'  => '',
+               //'access_token'  => '',
                 // 当fecshop给trace通过curl发送数据，最大的超时时间，该时间是为了防止网络问题时间过长，影响正常的功能。
-                'api_time_out' => 1, // 秒
+               // 'api_time_out' => 1, // 秒
                 // 追踪js url，这个是在统计系统，由管理员提供
-                'trace_url'     => '',  // 'trace.fecshop.com/fec_trace.js',
+               // 'trace_url'     => '',  // 'trace.fecshop.com/fec_trace.js',
                 // 管理员提供，用于发送登录注册邮件，下单信息等。
-                'trace_api_url' => '',  // 'http://120.24.37.249:3000/fec/trace/api',
+               // 'trace_api_url' => '',  // 'http://120.24.37.249:3000/fec/trace/api',
             ],
         ],
     ],

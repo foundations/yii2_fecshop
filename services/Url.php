@@ -24,7 +24,7 @@ use Yii;
  */
 class Url extends Service
 {
-    public $randomCount = 8;
+    public $randomCount = 9;
 
     public $showScriptName;
 
@@ -57,25 +57,22 @@ class Url extends Service
      * @param $type|String, url rewrite type.
      * @return rewrite Key.
      */
-    protected function actionSaveRewriteUrlKeyByStr($str, $originUrl, $originUrlKey, $type = 'system')
+    public function saveRewriteUrlKeyByStr($str, $originUrl, $originUrlKey, $type = 'system')
     {
         $str = trim($str);
         $originUrl = $originUrl ? '/'.trim($originUrl, '/') : '';
         $originUrlKey = $originUrlKey ? '/'.trim($originUrlKey, '/') : '';
-        if ($originUrlKey) {
+        if ($originUrlKey && $originUrl) {
             /**
              * if originUrlKey and  originUrl is exist in url rewrite collectons.
              */ 
             $model = $this->find();
+            // 如果已经存在，那么直接返回
             $data_one = $model->where([
                 'custom_url_key'    => $originUrlKey,
-                //'origin_url'        => $originUrl,
+                'origin_url'        => $originUrl,
             ])->one();
             if (isset($data_one['custom_url_key'])) {
-                // 只要进行了查询，就要更新一下rewrite url表的updated_at.
-                $data_one->updated_at = time();
-                $data_one->origin_url = $originUrl;
-                $data_one->save();
 
                 return $originUrlKey;
             }
@@ -112,7 +109,7 @@ class Url extends Service
      * @param $url_key|string
      * remove url rewrite data by $url_key,which is custom url key that saved in custom url modules,like articcle , product, category ,etc..
      */
-    protected function actionRemoveRewriteUrlKey($url_key)
+    public function removeRewriteUrlKey($url_key)
     {
         $model = $this->findOne([
             'custom_url_key' => $url_key,
@@ -144,7 +141,7 @@ class Url extends Service
         return $this->_currentUrl;
     }
 
-    protected function actionGetCurrentUrlNoParam()
+    public function getCurrentUrlNoParam()
     {
         $currentUrl = $this->getCurrentUrl();
         if (strstr($currentUrl, '?')) {
@@ -159,11 +156,20 @@ class Url extends Service
      *  get $origin_url by $custom_url_key ,it is used for yii2 init,
      *  in (new fecshop\services\Request)->resolveRequestUri(),  ## fecshop\services\Request is extend  yii\web\Request
      */
-    protected function actionGetOriginUrl($urlKey)
+    public function getOriginUrl($urlKey)
     {
         return Yii::$service->url->rewrite->getOriginUrl($urlKey);
     }
-
+    
+    public function getDefaultStoreUrl($url_key, $params = [])
+    {
+        $defaultStore = Yii::$service->storeDomain->getDefaultStore();
+        $domain = $defaultStore['key'];
+        $https = $defaultStore['https_enable'] == 1 ? true : false;
+        
+        
+        return $this->getUrlByDomain($url_key, $params, $https, $domain);
+    }
     /**
      * @param $url_key | String  urlKey的值
      * @param $params | Array 。url里面个各个参数
@@ -175,7 +181,7 @@ class Url extends Service
      * 该功能一般是在脚本中通过各个域名的传入得到相应的url，譬如sitemap的生成就是应用了这个方法得到
      * 产品和分类的url。
      */
-    protected function actionGetUrlByDomain($url_key, $params = [], $https = false, $domain, $showScriptName = false, $useHttpForUrl = false)
+    public function getUrlByDomain($url_key, $params = [], $https = false, $domain, $showScriptName = false, $useHttpForUrl = false)
     {
         $first_str = substr($url_key, 0, 1);
         if ($first_str == '/') {
@@ -192,7 +198,6 @@ class Url extends Service
         } else {
             $baseUrl = '//'.$domain;
         }
-
         if ($showScriptName) {
             $baseUrl .= '/index.php';
         }
@@ -216,7 +221,7 @@ class Url extends Service
      * Yii::$service->url->getUrlByPath('cms/article/index',['id'=>33]);
      * Yii::$service->url->getUrlByPath('cms/article/index',['id'=>33],true);
      */
-    protected function actionGetUrl($path, $params = [], $https = false)
+    public function getUrl($path, $params = [], $https = false)
     {
         $first_str = substr($path, 0, 1);
         if ($first_str == '/') {
@@ -241,7 +246,7 @@ class Url extends Service
     /**
      * get current base url , is was generate by http(or https ).'://'.store_code.
      */
-    protected function actionGetCurrentBaseUrl()
+    public function getCurrentBaseUrl()
     {
         if (!$this->_currentBaseUrl) {
             $homeUrl = $this->homeUrl();
@@ -249,9 +254,6 @@ class Url extends Service
                 $homeUrl .= '/index.php';
             }
             $this->_currentBaseUrl = $homeUrl;
-            //if(!$this->_httpType)
-            //	$this->_httpType = $this->secure() ? 'https' : 'http';
-            //$this->_currentBaseUrl = str_replace("http",$this->_httpType,$homeUrl);
         }
 
         return $this->_currentBaseUrl;
@@ -263,6 +265,17 @@ class Url extends Service
     public function homeUrl()
     {
         return Yii::$app->getHomeUrl();
+    }
+    
+    public function isHttps()
+    {
+        $homeUrl = $this->homeUrl();
+        if (substr($homeUrl, 0, 5) == 'https') {
+            
+            return true;
+        }
+        
+        return false;
     }
 
     /**
@@ -296,23 +309,6 @@ class Url extends Service
     }
 
     /**
-     * check current url type is http or https. https is secure url type.
-     */
-    /*
-    protected function secure(){
-        if($this->_secure === null){
-
-            if($_SERVER['SERVER_PORT'] == 443){
-                $this->_secure = true;
-            }else{
-                $this->_secure = false;
-            }
-        }
-        return $this->_secure;
-    }
-    */
-
-    /**
      * get rewrite url key.
      */
     protected function getRewriteUrlKey($urlKey, $originUrl)
@@ -327,6 +323,7 @@ class Url extends Service
 
             return $this->getRewriteUrlKey($urlKey, $originUrl);
         } else {
+            
             return $urlKey;
         }
     }
@@ -348,6 +345,26 @@ class Url extends Service
 
         return $str;
     }
+    
+    protected function isRandomStr($randomStr)
+    {
+        $f = substr($randomStr, 0, 1);
+        if ($f !== '-') {
+            
+            return false;
+        }
+        $s =  substr($randomStr, 1);
+        if (strlen($s) != $this->randomCount) {
+            
+            return false;
+        }
+        if(!is_numeric($s)){
+            
+            return false;
+        }
+        
+        return true;
+    }
 
     /**
      * if url key is exist in url_rewrite table ,Behind url add some random string.
@@ -359,13 +376,30 @@ class Url extends Service
             $o_url = $this->_origin_url;
             if (strstr($this->_origin_url, '.')) {
                 list($o_url, $suffix) = explode('.', $this->_origin_url);
+                $l = $this->randomCount +1;
+                if (strlen($o_url) > $l) {
+                    $randomStrSub = substr($o_url, strlen($o_url) - $l , $l );
+                    $orignUrlK = substr($o_url, 0, strlen($o_url) - $l );
+                    if ($this->isRandomStr($randomStrSub)) {
+                        $o_url = $orignUrlK;
+                    }
+                }
                 $randomStr = $this->getRandom();
 
                 return $o_url.'-'.$randomStr.'.'.$suffix;
-            }
-            $randomStr = $this->getRandom();
+            } else {
+                $l = $this->randomCount +1;
+                if (strlen($o_url) > $l) {
+                    $randomStr = substr($o_url, strlen($o_url) - $l , $l );
+                    $orignUrlK = substr($o_url, 0, strlen($o_url) - $l );
+                    if ($this->isRandomStr($randomStr)) {
+                        $o_url = $orignUrlK;
+                    }
+                }
+                $randomStr = $this->getRandom();
 
-            return $this->_origin_url.'-'.$randomStr;
+                return $o_url.'-'.$randomStr;
+            }
         }
     }
 
@@ -376,7 +410,6 @@ class Url extends Service
     {
         setlocale(LC_ALL, '');
         $url = iconv('UTF-8', 'ASCII//TRANSLIT', $name);
-
         $url = preg_replace('{[^a-zA-Z0-9_.| -]}', '', $url);
         $url = strtolower(trim($url, '-'));
         $url = preg_replace('{[_| -]+}', '-', $url);
@@ -391,7 +424,7 @@ class Url extends Service
      * @param $removeUrlParamStr|string  在url中删除的部分，一般是某个key对应的某个val，譬如color=green
      * @param $backToPage1|bool  删除后，页数由原来的页数变成第一页？
      */
-    protected function actionRemoveUrlParamVal($url, $removeUrlParamStr, $backToPage1 = true)
+    public function removeUrlParamVal($url, $removeUrlParamStr, $backToPage1 = true)
     {
         $return_url = $url;
         if (strstr($url, '?'.$removeUrlParamStr.'&')) {
@@ -418,36 +451,30 @@ class Url extends Service
     /**
      * url 跳转.
      */
-    protected function actionRedirect($url)
+    public function redirect($url)
     {
         if ($url) {
-            //session_commit();
             Yii::$app->getResponse()->redirect($url)->send();
-            //header("Location: $url");
         }
     }
 
-    protected function actionRedirectByUrlKey($urlKey, $params = [])
+    public function redirectByUrlKey($urlKey, $params = [])
     {
         if ($urlKey) {
             $url = $this->getUrl($urlKey, $params);
-            //session_commit();
             Yii::$app->getResponse()->redirect($url)->send();
-            //header("Location: $url");
         }
     }
 
-    protected function actionRedirectHome()
+    public function redirectHome()
     {
         $homeUrl = $this->HomeUrl();
         if ($homeUrl) {
             Yii::$app->getResponse()->redirect($homeUrl)->send();
-            //session_commit();
-            //header("Location: $homeUrl");
         }
     }
     
-    protected function actionRedirect404()
+    public function redirect404()
     {
         $error404UrlKey = Yii::$app->errorHandler->errorAction;
         $error404Url    = $this->getUrl($error404UrlKey);
@@ -455,4 +482,56 @@ class Url extends Service
             Yii::$app->getResponse()->redirect($error404Url)->send();
         }
     }
+    // 判断是否是首页
+    public function isHomePage()
+    {
+        $rules = Yii::$app->urlManager->rules;
+        $route = '';
+        if (!is_array($rules)) {
+            
+            return false;
+        }
+        foreach ($rules as $one) {
+            $name = $one->name;
+            if ($name === '') {
+                $route = $one->route;
+            }
+        }
+        if (!$route) {
+            
+            return false;
+        }
+        //  $route  默认为  cms/home/index
+        $arr = explode('/', $route);
+        if (count($arr) != 3) {
+            
+            return false;
+        }
+        $mId = Yii::$app->controller->module->id;
+        $cId = Yii::$app->controller->id;
+        $aId = Yii::$app->controller->action->id;
+        // 通过module controler  action 的id 与 $routeArr核对，不一致则为false
+        if ($mId != $arr[0] || $cId != $arr[1] || $aId != $arr[2]) {
+            
+            return false;
+        }
+        
+        return true;
+    }
+    /**
+     * @param $url | string ， 网址url字符串
+     * @return bool
+     * 判断传递的网址url字符串，是否是合法的网址字符串。
+     */
+    public function isValidUrl($url)
+    {
+        if (filter_var($url, FILTER_VALIDATE_URL) === FALSE) {
+            
+            return false;
+        }
+        
+        return true;
+    }
+
+
 }

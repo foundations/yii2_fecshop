@@ -10,18 +10,19 @@
 namespace fecshop\app\appadmin\modules\Catalog\helper;
 
 use Yii;
+
 /**
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-// use fecshop\app\appadmin\modules\Catalog\helper\Product as ProductHelper;
-class Product
+ 
+class Product extends \yii\base\BaseObject
 {
     public static function getStatusArr()
     {
         return [
-            1 => Yii::$service->page->translate->__('Enable'),
-            2 => Yii::$service->page->translate->__('Disable'),
+            1 => Yii::$service->page->translate->__('Product Enable'),
+            2 => Yii::$service->page->translate->__('Product Disable'),
         ];
     }
 

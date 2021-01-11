@@ -78,6 +78,7 @@ class AppadminbaseBlock extends BaseObject
      */
     public function init()
     {
+        parent::init();
         if (!($this instanceof AppadminbaseBlockInterface)) {
             echo  'Managere  must implements fecshop\app\appadmin\interfaces\base\AppadminbaseBlockInterface';
             exit;
@@ -266,19 +267,16 @@ class AppadminbaseBlock extends BaseObject
 										'.$value.'
 									</td>';
                 } elseif ($d['type'] == 'inputtext') {
-                    $searchBar .= '<td>
-										'.$title.':<input type="text" value="'.(is_array($this->_param[$name]) ? $this->_param[$name]['$regex'] : $this->_param[$name]).'" name="'.$name.'" />
+                    $searchBar .= '<td><input placeholder="'.$title.'" type="text" value="'.(is_array($this->_param[$name]) ? $this->_param[$name]['$regex'] : $this->_param[$name]).'" name="'.$name.'" />
 									</td>';
                 } elseif ($d['type'] == 'inputdate') {
-                    $searchBar .= '<td>
-										'.$title.'<input type="text" value="'.$this->_param[$name].'" name="'.$name.'"  class="date" readonly="true" />
+                    $searchBar .= '<td><input placeholder="'.$title.'" type="text" value="'.$this->_param[$name].'" name="'.$name.'"  class="date" readonly="true" />
 									</td>';
                 } elseif ($d['type'] == 'inputdatefilter') {
                     $value = $d['value'];
                     if (is_array($value)) {
                         foreach ($value as $t=>$title) {
-                            $searchBar .= '<td>
-								'.$title.'<input type="text" value="'.$this->_param[$name.'_'.$t].'" name="'.$name.'_'.$t.'"  class="date" readonly="true" />
+                            $searchBar .= '<td><input placeholder="'.$title.'" type="text" value="'.$this->_param[$name.'_'.$t].'" name="'.$name.'_'.$t.'"  class="date" readonly="true" />
 							</td>';
                         }
                     }
@@ -286,8 +284,7 @@ class AppadminbaseBlock extends BaseObject
                     $value = $d['value'];
                     if (is_array($value)) {
                         foreach ($value as $t=>$title) {
-                            $searchBar .= '<td>
-								'.$title.'<input type="text" value="'.$this->_param[$name.'_'.$t].'" name="'.$name.'_'.$t.'"    />
+                            $searchBar .= '<td><input placeholder="'.$title.'" type="text" value="'.$this->_param[$name.'_'.$t].'" name="'.$name.'_'.$t.'"    />
 							</td>';
                         }
                     }
@@ -469,7 +466,7 @@ class AppadminbaseBlock extends BaseObject
             $align = isset($b['align']) ? 'align="'.$b['align'].'"' : '';
             $str .= '<th width="'.$width.'" '.$align.' orderField="'.$orderField.'" class="'.$class.'">'.$label.'</th>';
         }
-        $str .= '<th width="80" >' . Yii::$service->page->translate->__('Edit') . '</th>';
+        $str .= '<th width="120" >' . Yii::$service->page->translate->__('Edit') . '</th>';
         $str .= '</tr></thead>';
 
         return $str;

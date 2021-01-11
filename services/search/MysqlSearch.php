@@ -10,8 +10,6 @@
 
 namespace fecshop\services\search;
 
-//use fecshop\models\mongodb\Product;
-//use fecshop\models\mongodb\Search;
 use fecshop\services\Service;
 use Yii;
 
@@ -24,38 +22,32 @@ class MysqlSearch extends Service implements SearchInterface
 {
     public $searchIndexConfig;
 
-    //public $searchLang;
-
     public $enable;
-
-    //protected $_productModelName = '\fecshop\models\mongodb\Product';
-
-    //protected $_productModel;
 
     protected $_searchModelName = '\fecshop\models\mysqldb\Search';
 
     protected $_searchModel;
     
+    protected $_searchLangCode;
+    
     public function init()
     {
         parent::init();
-        //list($this->_productModelName, $this->_productModel) = \Yii::mapGet($this->_productModelName);
         list($this->_searchModelName, $this->_searchModel) = \Yii::mapGet($this->_searchModelName);
-        
     }
 
     /**
      * 创建索引.  (mysql不需要)
      */
-    protected function actionInitFullSearchIndex()
+    public function initFullSearchIndex()
     {
         return;
     }
-    // 
+    
     protected function getProductSelectData()
     {
         $productPrimaryKey = Yii::$service->product->getPrimaryKey(); 
-        //echo $productPrimaryKey;exit;
+        
         return [
             $productPrimaryKey,
             'name',
@@ -78,25 +70,25 @@ class MysqlSearch extends Service implements SearchInterface
         ];
         
     }
-    protected $_searchLangCode;
     // 从配置中得到当前的搜索引擎对应的有效语言。
     protected function getActiveLangCode()
     {
         if (!$this->_searchLangCode) {
             $langArr = Yii::$app->store->get('mutil_lang');
             foreach ($langArr as $one) {
-                if ($one['search_engine'] == 'xunSearch') {
+                if ($one['search_engine'] == 'mysqlSearch') {
                     $this->_searchLangCode[] = $one['lang_code'];
                 }
             }
         }
+        
         return $this->_searchLangCode;
     }
     /**
      * @param $product_ids |　Array ，里面的子项是MongoId类型。
      * 将产品表的数据同步到各个语言对应的搜索表中。
      */
-    protected function actionSyncProductInfo($product_ids, $numPerPage)
+    public function syncProductInfo($product_ids, $numPerPage)
     {
         $sModel = $this->_searchModel;
         if (is_array($product_ids) && !empty($product_ids)) {
@@ -107,8 +99,6 @@ class MysqlSearch extends Service implements SearchInterface
             $filter['where'][] = ['in', $productPrimaryKey, $product_ids];
             $filter['numPerPage'] = $numPerPage;
             $filter['pageNum'] = 1;
-            
-            
             $coll = Yii::$service->product->coll($filter);
             if (is_array($coll['coll']) && !empty($coll['coll'])) {
                 $productPrimaryKey = Yii::$service->product->getPrimaryKey();
@@ -118,18 +108,13 @@ class MysqlSearch extends Service implements SearchInterface
                     $one['score'] = (int)$one['score'];
                     $one['is_in_stock'] = (int)$one['is_in_stock'];
                     $one['created_at'] = (int)$one['created_at'];
-                    
                     $one['price'] = (float)$one['price'];
                     $one['cost_price'] = (float)$one['cost_price'];
                     $one['special_price'] = (float)$one['special_price'];
                     $one['special_from'] = (int)$one['special_from'];
                     $one['special_to'] = (int)$one['special_to'];
                     $one['final_price'] = (float)$one['final_price'];
-                    
                     unset($one[$productPrimaryKey]);
-                    //$langCodes = Yii::$service->fecshoplang->allLangCode;
-                    //if(!empty($langCodes) && is_array($langCodes)){
-                    //	foreach($langCodes as $langCodeInfo){
                     $one_name = $one['name'];
                     $one_description = $one['description'];
                     $one_short_description = $one['short_description'];
@@ -138,12 +123,10 @@ class MysqlSearch extends Service implements SearchInterface
                         foreach ($searchLangCode as $langCode) {
                             $one['lang'] = $langCode;
                             $one['image'] = serialize($one['image']);
-                            
                             $searchModel = $this->_searchModel->findOne([
                                 'product_id' => $one['product_id'],
                                 'lang'  => $langCode,
                             ]);
-                            
                             if (!$searchModel['product_id']) {
                                 $searchModel = new $this->_searchModelName();
                             }
@@ -155,14 +138,12 @@ class MysqlSearch extends Service implements SearchInterface
                             if ($errors = Yii::$service->helper->errors->get()) {
                                 // 报错。
                                 var_dump($errors);
-                                //return false;
                             }
                         }
                     }
                 }
             }
         }
-        //echo "MongoSearch sync done ... \n";
         
         return true;
     }
@@ -170,16 +151,15 @@ class MysqlSearch extends Service implements SearchInterface
     /**
      * @param $nowTimeStamp | int
      * 批量更新过程中，被更新的产品都会更新字段sync_updated_at
-     * 删除xunSearch引擎中sync_updated_at小于$nowTimeStamp的字段.
+     * 删除mysqlSearch引擎中sync_updated_at小于$nowTimeStamp的字段.
      */
-    protected function actionDeleteNotActiveProduct($nowTimeStamp)
+    public function deleteNotActiveProduct($nowTimeStamp)
     {
         $sModel = $this->_searchModel;
         echo "begin delete Mongodb Search Date \n";
         $searchLangCode = $this->getActiveLangCode();
         if (!empty($searchLangCode) && is_array($searchLangCode)) {
             foreach ($searchLangCode as $langCode) {
-                //$sModel::$_lang = $langCode;
                 // 更新时间方式删除。
                 $this->_searchModel->deleteAll([
                     'and',
@@ -196,7 +176,7 @@ class MysqlSearch extends Service implements SearchInterface
         }
     }
 
-    protected function actionRemoveByProductId($product_id)
+    public function removeByProductId($product_id)
     {
         $this->_searchModel->deleteAll([
             'product_id' => $product_id,
@@ -226,7 +206,7 @@ class MysqlSearch extends Service implements SearchInterface
      * ]
      * 得到搜索的产品列表.
      */
-    protected function actionGetSearchProductColl($select, $where, $pageNum, $numPerPage, $product_search_max_count)
+    public function getSearchProductColl($select, $where, $pageNum, $numPerPage, $product_search_max_count)
     {
         // 先进行sku搜索，如果有结果，说明是针对sku的搜索
         $enableStatus = Yii::$service->product->getEnableStatus();
@@ -243,11 +223,10 @@ class MysqlSearch extends Service implements SearchInterface
                 'product_search_max_count' => $product_search_max_count,
                 'select'         => $select,
             ];
-            //var_dump($filter);exit;
             $collection = $this->fullTearchText($filter);
         }
         $collection['coll'] = Yii::$service->category->product->convertToCategoryInfo($collection['coll']);
-        //var_dump($collection);
+        
         return $collection;
     }
 
@@ -277,7 +256,6 @@ class MysqlSearch extends Service implements SearchInterface
         if (!isset($where['status'])) {
             $where['status'] = Yii::$service->product->getEnableStatus();
         }
-        //$product_search_max_count = $filter['product_search_max_count'] ? $filter['product_search_max_count'] : 1000;
         foreach ($where as $k=>$v) {
             if (is_array($v)) {
                 $k !== 'price' || $k = 'final_price';
@@ -299,49 +277,32 @@ class MysqlSearch extends Service implements SearchInterface
         $pageNum = $filter['pageNum'];
         $numPerPage = $filter['numPerPage'];
         $orderBy = $filter['orderBy'];
-        
-        $searchM = $this->_searchModel->find()->asArray()
-            ->where($whereArr)
-            
-            ;
-        if ($orderBy) {
-            $searchM->orderBy($orderBy);
-        }    
-            
-        $search_data = $searchM->limit($numPerPage)->offset(($pageNum-1)*$numPerPage)->all();
-        //var_dump($search_data);exit;
-        
-        //var_dump($search_data);exit;
-        /**
-         * 在搜索页面, spu相同的sku，是否只显示其中score高的sku，其他的sku隐藏
-         * 如果设置为true，那么在搜索结果页面，spu相同，sku不同的产品，只会显示score最高的那个产品
-         * 如果设置为false，那么在搜索结果页面，所有的sku都显示。
-         * 这里做设置的好处，譬如服装，一个spu的不同颜色尺码可能几十个产品，都显示出来会占用很多的位置，对于这种产品您可以选择设置true
-         * 这个针对的京东模式的产品
-         */
-        $data = [];
+        $count = 0;
+        $searchM = $this->_searchModel->find()->asArray()->where($whereArr);
         if (Yii::$service->search->productSpuShowOnlyOneSku) {
-            foreach ($search_data as $one) {
-                if (!isset($data[$one['spu']])) {
-                    $data[$one['spu']] = $one;
-                }
-            }
+            /**
+             * 如果产品spu存在多个sku（譬如同一款产品存在多个颜色尺码），但是分类页只显示一个sku，那么需要通过
+             * 下面的逻辑，对spu进行group，对score倒序，取score最大的那个sku作为分类列表显示
+             */
+            $orderBy['score'] = SORT_DESC;
+            $query = $searchM->orderBy($orderBy)->groupBy('spu')->limit($numPerPage)->offset(($pageNum-1)*$numPerPage);
+            $search_data = $query->all();
+            $count = $query->limit(null)->offset(null)->count();
         } else {
-            $data = $search_data;
-        }
-            
-        $count = count($data);
-        $offset = ($pageNum - 1) * $numPerPage;
-        $limit = $numPerPage;
+            if ($orderBy) {
+                $searchM->orderBy($orderBy);
+            } 
+            $query = $searchM->limit($numPerPage)->offset(($pageNum-1)*$numPerPage);
+            $search_data = $query->all();
+            $count = $query->limit(null)->offset(null)->count();
+        }   
         $productIds = [];
-        foreach ($data as $d) {
+        foreach ($search_data as $d) {
             $productIds[] = $d['product_id'];
         }
-        
-        $productIds = array_slice($productIds, $offset, $limit);
+        // 通过productIds数组 得到产品数据
         $productPrimaryKey = Yii::$service->product->getPrimaryKey();
         if (!empty($productIds)) {
-            //
             foreach ($select as $sk => $se) {
                 if ($se == 'product_id') {
                     unset($select[$sk]);
@@ -355,31 +316,15 @@ class MysqlSearch extends Service implements SearchInterface
                 ],
             ];
             $collData = Yii::$service->product->coll($filter);
-            $data = $collData['coll'];
-            /**
-             * 下面的代码的作用：将结果按照上面in查询的顺序进行数组的排序，使结果和上面的搜索结果排序一致（_id）。
-             */
-            //var_dump($data);exit;
-            $s_data = [];
-            foreach ($data as $one) {
-                if ($one[$productPrimaryKey]) {
-                    $_id = (string) $one[$productPrimaryKey];
-                    $s_data[$_id] = $one;
-                }
-            }
-            $return_data = [];
-            foreach ($productIds as $product_id) {
-                $pid = (string) $product_id;
-                if (isset($s_data[$pid]) && $s_data[$pid]) {
-                    $return_data[] = $s_data[$pid];
-                }
-            }
+            $return_data = $collData['coll'];
             
             return [
                 'coll' => $return_data,
                 'count'=> $count,
             ];
         }
+        
+        return [];
     }
 
     /**
@@ -389,7 +334,7 @@ class MysqlSearch extends Service implements SearchInterface
      * 这个功能是用于前端分类侧栏进行属性过滤。
      * mysql 功能受限，这个废掉了。
      */
-    protected function actionGetFrontSearchFilter($filter_attr, $where)
+    public function getFrontSearchFilter($filter_attr, $where)
     {
         return [];
     }

@@ -15,7 +15,7 @@ use Yii;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class Index
+class Index extends \yii\base\BaseObject
 {
     public function getLastData()
     {
@@ -24,6 +24,9 @@ class Index
         return [
             'accountEditUrl' => Yii::$service->url->getUrl('customer/editaccount'),
             'email'            => $identity['email'],
+            'firstname'            => $identity['firstname'],
+            'lastname'            => $identity['lastname'],
+            'created_at'            => $identity['created_at'],
             'accountAddressUrl' => Yii::$service->url->getUrl('customer/address'),
             'accountOrderUrl' => Yii::$service->url->getUrl('customer/order'),
         ];

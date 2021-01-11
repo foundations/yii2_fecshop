@@ -20,11 +20,16 @@ return [
 					'catalog_product_review_manager' 		=> 'Catalog-Product-Review',
 					'catalog_product_search_manager' 		=> 'Catalog-Product-Search',
 					'catalog_product_favorite_manager' 	=> 'Catalog-Product-Favorite',
+                    'catalog_product_upload_manager' 	    => 'Catalog-Product-Upload',
+                    'catalog_product_brand_manager' 	    => 'Catalog-Product-Brand',
+                    'catalog_product_brand_category_manager' 	    => 'Catalog-Product-Brand-Category',
 					'catalog_category_manager' 				=> 'Catalog-Category',
 					'catalog_url_rewrite_manager' 			    => 'Catalog-Url-Rewrite',
+                    'sales_cart_manager' 						=> 'Sales-Cart',
                     'sales_order_manager' 						=> 'Sales-Order',
 					'sales_coupon_manager' 					    => 'Sales-Coupon',
                     'customer_account' 							    => 'Customer-Account',
+                    'customer_contacts' 							    => 'Customer-Contacts',
 					'customer_newsletter' 						    => 'Customer-Newsletter',
                     'cms_page' 										    => 'CMS-Page',
 					'cms_static_block' 								=> 'CMS-StaticBlock',
@@ -37,8 +42,11 @@ return [
 					'dashboard_cache' 							    => 'Dashboard-Cache',
 					'dashboard_config' 							    => 'Dashboard-Config',
 					'dashboard_error_handler'					=> 'Dashboard-ErrorHandler',
-                    
+                    'extension_manager' 					    => 'Extension-Center',
+                    'extension_installed' 					    => 'Extension-Installed',
+                    'extension_developer_center' 					    => 'Extension-Developer-Center',
                     'config_base_manager' 					    => 'Config-Base',
+                    'config_payment_manager' 					    => 'Config-Payment',
                     'config_appfront_manager' 					=> 'Config-Appfront',
                     'config_apphtml5_manager' 					=> 'Config-Apphtml5',
                     'config_appserver_manager' 				=> 'Config-Appserver',
@@ -66,10 +74,12 @@ return [
                     // 一级大类
                     'catalog' => [
                         'label' => 'Category & Prodcut',
+                        'enable' => true,  // 显示和隐藏菜单选项的开关，true代表显示，false代表隐藏
+                        'sort_order' => 1, // 菜单排序，如果不设置 sort_order， 默认值为0，倒序排列，该值越大，越排在前面
                         'child' => [
                             // 二级类
                             'product_manager' => [
-                                'label' => 'Manager Product',
+                                'label' => 'Manage Product',
                                 'child' => [
                                     // 三级类
                                     'product_info_manager' => [
@@ -77,12 +87,16 @@ return [
                                         'url_key' => '/catalog/productinfo/index',
                                     ],
                                     'product_attr_manager' => [
-                                        'label' => '产品属性管理',
+                                        'label' => 'Product Attribute',
                                         'url_key' => '/catalog/productattr/manager',
                                     ],
                                     'product_attr_group_manager' => [
-                                        'label' => '产品属性组管理',
+                                        'label' => 'Product Attribute Group',
                                         'url_key' => '/catalog/productattrgroup/manager',
+                                    ],
+                                    'product_param_manager' => [
+                                        'label' => 'Product Param Config',
+                                        'url_key' => '/config/product/manager',
                                     ],
                                     // 三级类
                                     'product_review_manager' => [
@@ -94,20 +108,44 @@ return [
                                         'label' => 'Product Favorite',
                                         'url_key' => '/catalog/productfavorite/index',
                                     ],
+                                    
+                                    'product_upload_manager' => [
+                                        'label' => 'Product Excel Upload',
+                                        'url_key' => '/catalog/productupload/manager',
+                                    ],
+                                    
+                                    'product_brand_manager' => [
+                                        'label' => 'Product Brand',
+                                        'url_key' => '/catalog/productbrand/manager',
+                                    ],
+                                    
+                                    'product_randcategory_manager' => [
+                                        'label' => 'Product Brand Category',
+                                        'url_key' => '/catalog/productbrandcategory/manager',
+                                    ],
                                 ]
                             ],
                             'category_manager' => [
-                                'label' => 'Manager Category',
+                                'label' => 'Manage Category',
                                 'child' => [
                                     // 三级类
                                     'category_info_manager' => [
                                         'label' => 'Category Info',
                                         'url_key' => '/catalog/category/index',
                                     ],
-                                    'category_info_config' => [
-                                        'label' => '分类配置',
-                                        'url_key' => '/catalog/category/index',
+                                    'category_sort_manager' => [
+                                        'label' => 'Category Sort Config',
+                                        'url_key' => '/config/categorysort/manager',
                                     ],
+                                    'category_upload_manager' => [
+                                        'label' => 'Category Excel Upload',
+                                        'url_key' => '/catalog/categoryupload/manager',
+                                    ],
+                                    
+                                    //'category_info_config' => [
+                                    //    'label' => '分类配置',
+                                    //    'url_key' => '/catalog/category/index',
+                                    //],
                                 ],  
                             ],
                             'urlrewrite_manager' => [
@@ -116,152 +154,251 @@ return [
                             ],
                         ]
                     ],
+                    'extension' => [
+                        'label' => 'Extension Center',
+                        'child' => [
+                            'extension_manager' => [
+                                'label' => 'Manage Extensions',
+                                'child' => [
+                                    'extension_market' => [
+                                        'label' => 'Extention Market',
+                                        'url_key' => '/system/extensionmarket/manager',
+                                    ],
+                                    'extension_installed' => [
+                                        'label' => 'Extension Installed',
+                                        'url_key' => '/system/extensioninstalled/manager',
+                                    ],
+                                    
+                                ],
+                                
+                            ], 
+                            'extension_developer' => [
+                                'label' => 'Developer Center',
+                                'child' => [
+                                    'extension_market' => [
+                                        'label' => 'Extention Gii',
+                                        'url_key' => '/system/extensiongii/manager',
+                                    ],
+                                ],
+                            ],
+                            
+                        ],
+                    ],
                     'sales' => [
-                        'label' => 'Sales',
+                        'label' => 'Mall Manage',
                         'child' => [
                             'order' => [
                                 'label' => 'Order',
                                 'child' => [
                                     'order_manager' => [
-                                        'label' => 'Manager Order',
+                                        'label' => 'Manage Order',
                                         'url_key' => '/sales/orderinfo/manager',
                                     ],
                                     'order_config' => [
-                                        'label' => '订单参数配置',
-                                        'url_key' => '/sales/orderinfo/manager',
+                                        'label' => 'Order Param Config',
+                                        'url_key' => '/config/order/manager',
                                     ],
                                 ],
                             ],
+                            'cart' => [
+                                'label' => 'Cart Param Config',
+                                'url_key' => '/config/cart/manager',
+                            ], 
                             'coupon' => [
                                 'label' => 'Coupon',
                                 'url_key' => '/sales/coupon/manager',
                             ],
-                        ],
-                    ],
-                    'config' => [
-                        'label' => '网站配置',
-                        'child' => [
-                            'services' => [
-                                'label' => '基础配置',
+                            'customer' => [
+                                'label' => 'Customer',
                                 'child' => [
-                                    'base_manager' => [
-                                        'label' => '基础配置',
-                                        'url_key' => '/config/base/manager',
+                                    'account' => [
+                                        'label' => 'Manage Account',
+                                        'url_key' => '/customer/account/index',
                                     ],
-                                    'service_manager' => [
-                                        'label' => 'Service数据库配置',
-                                        'url_key' => '/config/service/db',
-                                    ],
-                                    'search' => [
-                                        'label' => '搜索引擎配置',
-                                        'url_key' => '/config/search/manager',
-                                    ],
-                                    'mutillang' => [
-                                        'label' => '多语言配置',
-                                        'url_key' => '/config/mutillang/manager',
-                                    ],
-                                    'currency' => [
-                                        'label' => '货币配置',
-                                        'url_key' => '/config/currency/manager',
-                                    ],
-                                    
-                                ],
-                            ],
-                            
-                            'appfront_config' => [
-                                'label' => 'Appfront配置',
-                                'child' => [
-                                    'cache' => [
-                                        'label' => '缓存配置',
-                                        'url_key' => '/config/appfrontcache/manager',
-                                    ],
-                                    'store' => [
-                                        'label' => 'Store配置',
-                                        'url_key' => '/config/appfrontstore/manager',
-                                    ],
-                                    /*
-                                    'theme' => [
-                                        'label' => '模板配置',
-                                        'url_key' => '/sales/orderinfo/manager',
-                                    ],
-                                    'theme' => [
-                                        'label' => '菜单配置',
-                                        'url_key' => '/sales/orderinfo/manager',
-                                    ],
-                                    'payment' => [
-                                        'label' => '支付配置',
-                                        'url_key' => '/sales/orderinfo/manager',
-                                    ],
-                                    'wx' => [
-                                        'label' => '微信小程序配置',
-                                        'url_key' => '/sales/orderinfo/manager',
-                                    ],
-                                    'email' => [
-                                        'label' => '邮件配置',
-                                        'url_key' => '/sales/orderinfo/manager',
-                                    ],
-                                    'yanzhengma' => [
-                                        'label' => '验证码配置',
-                                        'url_key' => '/sales/orderinfo/manager',
-                                    ],
-                                    */
-                                    
-                                    
-                                ],
-                            ],
-                            'apphtml5_config' => [
-                                'label' => 'Apphtml5配置',
-                                'child' => [
-                                    'cache' => [
-                                        'label' => '缓存配置',
-                                        'url_key' => '/config/apphtml5cache/manager',
-                                    ], 
-                                    'store' => [
-                                        'label' => 'Store配置',
-                                        'url_key' => '/config/apphtml5store/manager',
+                                    'contacts' => [
+                                        'label' => 'Customer Contacts',
+                                        'url_key' => '/customer/contacts/index',
                                     ],
                                 ],
-                            ],
-                            'appserver_config' => [
-                                'label' => 'Appserver配置',
-                                'child' => [
-                                    'cache' => [
-                                        'label' => '缓存配置',
-                                        'url_key' => '/config/appservercache/manager',
-                                    ], 
-                                    'store' => [
-                                        'label' => 'Store配置',
-                                        'url_key' => '/config/appserverstore/manager',
-                                    ],
-                                    'store_lang' => [
-                                        'label' => 'Store语言配置',
-                                        'url_key' => '/config/appserverstorelang/manager',
-                                    ],
-                                    
-                                ],
-                            ],
-                        ],
-                        
-                    ],
-                    'customer' => [
-                        'label' => 'Manager User',
-                        'child' => [
-                            'account' => [
-                                'label' => 'Manager Account',
-                                'url_key' => '/customer/account/index',
                             ],
                             'newsletter' => [
                                 'label' => 'NewsLetter',
                                 'url_key' => '/customer/newsletter/index',
                             ],
-
                         ],
                     ],
+                    'config' => [
+                        'label' => 'Website Config',
+                        'child' => [
+                            'services' => [
+                                'label' => 'Base Config',
+                                'child' => [
+                                    'base_manager' => [
+                                        'label' => 'Base Config',
+                                        'url_key' => '/config/base/manager',
+                                    ],
+                                    'service_manager' => [
+                                        'label' => 'Service Db Config',
+                                        'url_key' => '/config/service/db',
+                                    ],
+                                    'search' => [
+                                        'label' => 'Search Engine Config',
+                                        'url_key' => '/config/search/manager',
+                                    ],
+                                    'mutillang' => [
+                                        'label' => 'Mutil-Lang Config',
+                                        'url_key' => '/config/mutillang/manager',
+                                    ],
+                                    'currency' => [
+                                        'label' => 'Currency Config',
+                                        'url_key' => '/config/currency/manager',
+                                    ],
+                                    'email_manager' => [
+                                        'label' => 'Email Config',
+                                        'url_key' => '/config/email/manager',
+                                    ],
+                                    
+                                    'fa' => [
+                                        'label' => 'FA Config',
+                                        'url_key' => '/config/fa/manager',
+                                    ],
+                                    
+                                ],
+                            ],
+                            
+                            'payment_config' => [
+                                'label' => 'Payment Param Config',
+                                'child' => [
+                                    'payment_paypal' => [
+                                        'label' => 'Paypal Config',
+                                        'url_key' => '/config/paymentpaypal/manager',
+                                    ],
+                                    'payment_alipay' => [
+                                        'label' => 'Alipay Config',
+                                        'url_key' => '/config/paymentalipay/manager',
+                                    ],
+                                    'payment_wxpay' => [
+                                        'label' => 'Wxpay Config',
+                                        'url_key' => '/config/paymentwxpay/manager',
+                                    ],
+                                ],
+                            ],
+                            
+                            'appfront_config' => [
+                                'label' => 'Appfront Config',
+                                'child' => [
+                                    'base' => [
+                                        'label' => 'Base Config',
+                                        'url_key' => '/config/appfrontbase/manager',
+                                    ],
+                                    'home' => [
+                                        'label' => 'Home Page Config',
+                                        'url_key' => '/config/appfronthome/manager',
+                                    ],
+                                    'cache' => [
+                                        'label' => 'Cache Config',
+                                        'url_key' => '/config/appfrontcache/manager',
+                                    ],
+                                    'store' => [
+                                        'label' => 'Store Config',
+                                        'url_key' => '/config/appfrontstore/manager',
+                                    ],
+                                    'catalog' => [
+                                        'label' => 'Catalog Config',
+                                        'url_key' => '/config/appfrontcatalog/manager',
+                                    ],
+                                    'account' => [
+                                        'label' => 'Customer Account Config',
+                                        'url_key' => '/config/appfrontaccount/manager',
+                                    ],
+                                    'payment' => [
+                                        'label' => 'Payment Config',
+                                        'url_key' => '/config/appfrontpayment/manager',
+                                    ],
+                                    
+                                ],
+                            ],
+                            'apphtml5_config' => [
+                                'label' => 'Apphtml5 Config',
+                                'child' => [
+                                    'base' => [
+                                        'label' => 'Base Config',
+                                        'url_key' => '/config/apphtml5base/manager',
+                                    ],
+                                    'home' => [
+                                        'label' => 'Home Page Config',
+                                        'url_key' => '/config/apphtml5home/manager',
+                                    ],
+                                    'cache' => [
+                                        'label' => 'Cache Config',
+                                        'url_key' => '/config/apphtml5cache/manager',
+                                    ], 
+                                    'store' => [
+                                        'label' => 'Store Config',
+                                        'url_key' => '/config/apphtml5store/manager',
+                                    ],
+                                    
+                                    'catalog' => [
+                                        'label' => 'Catalog Config',
+                                        'url_key' => '/config/apphtml5catalog/manager',
+                                    ],
+                                    'account' => [
+                                        'label' => 'Customer Account Config',
+                                        'url_key' => '/config/apphtml5account/manager',
+                                    ],
+                                    'payment' => [
+                                        'label' => 'Payment Config',
+                                        'url_key' => '/config/apphtml5payment/manager',
+                                    ],
+                                ],
+                            ],
+                            'appserver_config' => [
+                                'label' => 'Appserver Config',
+                                'child' => [
+                                    'base' => [
+                                        'label' => 'Base Config',
+                                        'url_key' => '/config/appserverbase/manager',
+                                    ],
+                                    'home' => [
+                                        'label' => 'Home Page Config',
+                                        'url_key' => '/config/appserverhome/manager',
+                                    ],
+                                    'cache' => [
+                                        'label' => 'Cache Config',
+                                        'url_key' => '/config/appservercache/manager',
+                                    ], 
+                                    'store' => [
+                                        'label' => 'Store Config',
+                                        'url_key' => '/config/appserverstore/manager',
+                                    ],
+                                    'store_lang' => [
+                                        'label' => 'Store Language Config',
+                                        'url_key' => '/config/appserverstorelang/manager',
+                                    ],
+                                    
+                                    'catalog' => [
+                                        'label' => 'Catalog Config',
+                                        'url_key' => '/config/appservercatalog/manager',
+                                    ],
+                                    'account' => [
+                                        'label' => 'Customer Account Config',
+                                        'url_key' => '/config/appserveraccount/manager',
+                                    ],
+                                    'payment' => [
+                                        'label' => 'Payment Config',
+                                        'url_key' => '/config/appserverpayment/manager',
+                                    ],
+                                ],
+                            ],
+                        ],
+                        
+                    ],
+                    
                     'cms' => [
                         'label' => 'CMS',
                         'child' => [
                             'page' => [
-                                'label' => 'Manager Page',
+                                'label' => 'Manage Page',
                                 'url_key' => '/cms/article/index',
                             ],
                             'staticblock' => [
@@ -281,15 +418,15 @@ return [
                                         'url_key' => '/fecadmin/myaccount/index',
                                     ],
                                     'account_manager' => [
-                                        'label' => 'Manager Account',
+                                        'label' => 'Manage Account',
                                         'url_key' => '/fecadmin/account/manager',
                                     ],
                                     'role_manager' => [
-                                        'label' => 'Manager Role',
+                                        'label' => 'Manage Role',
                                         'url_key' => '/fecadmin/role/manager',
                                     ],
                                     'resource_manager' => [
-                                        'label' => 'Manager Resource',
+                                        'label' => 'Manage Resource',
                                         'url_key' => '/fecadmin/resource/manager',
                                     ],
                                 ],
@@ -307,7 +444,7 @@ return [
                                 'url_key' => '/fecadmin/logtj/index',
                             ],
                             'cache' => [
-                                'label' => 'Manager Cache',
+                                'label' => 'Manage Cache',
                                 'url_key' => '/fecadmin/cache/index',
                             ],
                             'config' => [

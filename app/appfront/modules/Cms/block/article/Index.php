@@ -1,26 +1,33 @@
 <?php
-/*
- * 存放 一些基本的非数据库数据 如 html
- * 都是数组
+/**
+ * FecMall file.
+ *
+ * @link http://www.fecmall.com/
+ * @copyright Copyright (c) 2016 FecMall Software LLC
+ * @license http://www.fecmall.com/license/
  */
 
 namespace fecshop\app\appfront\modules\Cms\block\article;
 
 use fec\helpers\CRequest;
 use Yii;
-
-class Index
+/**
+ * @author Terry Zhao <2358269014@qq.com>
+ * @since 1.0
+ */
+class Index extends \yii\base\BaseObject
 {
     protected $_artile;
     protected $_title;
 
     public function getLastData()
     {
-
-        //echo Yii::$service->page->translate->__('fecshop,{username}', ['username' => 'terry']);
         $this->initHead();
-        // change current layout File.
-        //Yii::$service->page->theme->layoutFile = 'home.php';
+        if (!$this->_artile) {
+            
+            return null;
+        }
+        
         return [
             'title' => $this->_title,
             'content' => Yii::$service->store->getStoreAttrVal($this->_artile['content'], 'content'),
@@ -32,7 +39,7 @@ class Index
     {
         $primaryKey = Yii::$service->cms->article->getPrimaryKey();
         $primaryVal = Yii::$app->request->get($primaryKey);
-        $article = Yii::$service->cms->article->getByPrimaryKey($primaryVal);
+        $article = Yii::$service->cms->article->getActivePageByPrimaryKey($primaryVal);
         $this->_artile = $article;
 
         Yii::$app->view->registerMetaTag([

@@ -13,7 +13,7 @@ namespace fecshop\services;
 use Yii;
 
 /**
- * Cart services. 购物车service， 执行购物车部分对应的方法。
+ * 
  *
  * @property \fecshop\services\cart\Coupon $coupon coupon sub-service of cart
  * @property \fecshop\services\cart\Info $info info sub-service of cart
@@ -57,6 +57,7 @@ class StoreDomain extends Service
             
             return $one;
         } else {
+            
             return new $this->_modelName();
         }
     }
@@ -92,6 +93,7 @@ class StoreDomain extends Service
         $query = $this->_model->find();
         $query = Yii::$service->helper->ar->getCollByFilter($query, $filter);
         $coll = $query->all();
+        
         return [
             'coll' => $coll,
             'count'=> $query->limit(null)->offset(null)->count(),
@@ -110,6 +112,7 @@ class StoreDomain extends Service
         ];
         $query = $this->_model->find();
         $query = Yii::$service->helper->ar->getCollByFilter($query, $filter);
+        
         return $query->all();
     }
     
@@ -161,5 +164,15 @@ class StoreDomain extends Service
         }
 
         return true;
+    }
+    /**
+     * 目前这个函数是为了后台点击产品url，进入到产品详情
+     * 这里得到store domain
+     */
+    public function getDefaultStore()
+    {
+        $one = $this->_model->findOne(['status' => 1, 'app_name' => 'appfront']);
+        
+        return $one;
     }
 }

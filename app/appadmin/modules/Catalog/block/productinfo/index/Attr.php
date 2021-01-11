@@ -18,7 +18,7 @@ use Yii;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class Attr
+class Attr extends \yii\base\BaseObject
 {
     protected $_currentAttrGroup;
     protected $_attrInfo;
@@ -147,6 +147,7 @@ class Attr
                 ],
                 'require' => 1,
             ],
+            
             [
                 'label' => Yii::$service->page->translate->__('Long (CM)'),
                 'name'  => 'long',
@@ -175,7 +176,7 @@ class Attr
                 'require' => 0,
             ],
             [
-                'label' => '<span >' . Yii::$service->page->translate->__('Volume weight (Kg) {link_a}   Formula {link_b} ', [ 'link_a' => '<a  target="_blank" href="http://www.fecshop.com/topic/659">' , 'link_b' => '</a>' ]) . '</span>' ,
+                'label' => '<span >' . Yii::$service->page->translate->__('Volume weight (g) {link_a}   Formula {link_b} ', [ 'link_a' => '<a  target="_blank" href="http://www.fecshop.com/topic/659">' , 'link_b' => '</a>' ]) . '</span>' ,
                 'name'  => 'volume_weight',
                 'display' => [
                     'type' => 'inputString',
@@ -184,7 +185,7 @@ class Attr
                 'require' => 0,
             ],
             [
-                'label' => Yii::$service->page->translate->__('Weight (KG)'),
+                'label' => Yii::$service->page->translate->__('Weight (G)'),
                 'name'  => 'weight',
                 'display' => [
                     'type' => 'inputString',
@@ -200,6 +201,14 @@ class Attr
                     'lang' => false,
                 ],
                 'require' => 0,
+            ],
+            [
+                'label' => Yii::$service->page->translate->__('Product Brand'),
+                'name'  => 'brand_id',
+                'display' => [
+                    'type' => 'select',
+                    'data' => Yii::$service->product->brand->getAllBrandIdAndNames(),
+                ],
             ],
             [
                 'label' => Yii::$service->page->translate->__('Status'),

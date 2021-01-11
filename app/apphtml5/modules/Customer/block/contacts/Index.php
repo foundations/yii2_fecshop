@@ -16,17 +16,16 @@ use Yii;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class Index
+class Index extends \yii\base\BaseObject
 {
     public function getLastData()
     {
         $contactsEmail = '';
-        $contactsCaptcha = false;
-        $contacts = Yii::$app->getModule('customer')->params['contacts'];
-
-        if (isset($contacts['contactsCaptcha'])) {
-            $contactsCaptcha = $contacts['contactsCaptcha'];
-        }
+        //$contactsCaptcha = false;
+        //$contacts = Yii::$app->getModule('customer')->params['contacts'];
+        $appName = Yii::$service->helper->getAppName();
+        $contactsCaptcha = Yii::$app->store->get($appName.'_account', 'contactsCaptcha');
+        $contactsCaptcha = ($contactsCaptcha == Yii::$app->store->enable)  ? true : false;
         if (isset($contacts['email']['address'])) {
             $contactsEmail = $contacts['email']['address'];
         }
@@ -97,9 +96,11 @@ class Index
 
         $captcha = Yii::$app->request->post('sercrity_code');
         $captcha = \Yii::$service->helper->htmlEncode($captcha);
-        $contacts = Yii::$app->getModule('customer')->params['contacts'];
-        $contactsCaptcha = isset($contacts['contactsCaptcha']) ? $contacts['contactsCaptcha'] : false;
-
+        //$contacts = Yii::$app->getModule('customer')->params['contacts'];
+        //$contactsCaptcha = isset($contacts['contactsCaptcha']) ? $contacts['contactsCaptcha'] : false;
+        $appName = Yii::$service->helper->getAppName();
+        $contactsCaptcha = Yii::$app->store->get($appName.'_account', 'contactsCaptcha');
+        $contactsCaptcha = ($contactsCaptcha == Yii::$app->store->enable)  ? true : false;
         if ($contactsCaptcha && !$captcha) {
             Yii::$service->page->message->addError(['Captcha can not empty']);
 

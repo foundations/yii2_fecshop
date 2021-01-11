@@ -20,16 +20,20 @@ use Yii;
  */
 class Trace extends Service
 {
-    public $traceJsEnable = true;  // 是否打开js追踪
+    public $traceJsEnable = false;  // 是否打开js追踪
 
     public $website_id;     // 网站的id，在trace系统中获取
 
     public $trace_url;      // trace系统接收数据的url，在trace系统中获取
-
+    
+    // trace js收集的数据，将发送到该api
     public $trace_api_url;
 
     // 通过trace系统得到的token
     public $access_token;
+    
+    // 第三方追踪js
+    public $thirdTraceJsStr;
 
     // api发送数据给trace系统的最大等待时间，超过这个时间将不继续等待
     public $api_time_out = 1;
@@ -71,14 +75,65 @@ class Trace extends Service
     const PAYMENT_PENDING_ORDER = 'payment_pending_order';
 
     const PAYMENT_SUCCESS_ORDER = 'payment_success_order';
+    
+    
+    
+    public function init()
+    {
+        parent::init();
+        // 是否开启
+        $traceJsEnable = Yii::$app->store->get('fa_info', 'status');
+        if ($traceJsEnable == Yii::$app->store->enable) {
+            $this->traceJsEnable = true;
+        }
+        // FA 域名获取
+        $faDomain = Yii::$app->store->get('fa_info', 'fa_domain');
+        if (!$faDomain) {
+            $this->traceJsEnable = false;
+        }
+        // 第三方追踪js片段
+        $appName = Yii::$service->helper->getAppName();
+        $this->thirdTraceJsStr = Yii::$app->store->get($appName.'_base', 'third_trace_js');
+        
+        
+        // 设置trace url
+        $traceJsUrl = $faDomain . '/fec_trace.js';
+        $this->trace_url = $traceJsUrl;
+        
+        $traceApiUrl = $faDomain . '/trace/api';
+        $this->trace_api_url = $traceApiUrl;
+        
+        // FA website id
+        $faWebsiteId = Yii::$app->store->get('fa_info', 'website_id');
+        if ($faWebsiteId) {
+            $this->website_id = $faWebsiteId;
+        }
+        // FA Access Token
+        $faAccessToken = Yii::$app->store->get('fa_info', 'access_token');
+        if ($faAccessToken) {
+            $this->access_token = $faAccessToken;
+        }
+        // FA Api Timeout
+        $faApiTimeout = Yii::$app->store->get('fa_info', 'api_time_out');
+        if ($faApiTimeout) {
+            $this->api_time_out = $faApiTimeout;
+        }
+        
+    }
+    
+    
 
     /**
      * @return String, 通用的js部分，需要先设置 website_id 和 trace_url
      */
     public function getTraceCommonJsCode()
     {
-        if ($this->traceJsEnable) {
-            return "<script type=\"text/javascript\">
+        if (!$this->traceJsEnable) {
+            
+            return '';
+        }
+            
+        $traceJs = "<script type=\"text/javascript\">
     var _maq = _maq || [];
     _maq.push(['website_id', '" . $this->website_id . "']);
     _maq.push(['fec_store', '" . Yii::$service->store->currentStore . "']);
@@ -92,10 +147,11 @@ class Trace extends Service
         ma.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + '".$this->trace_url."';
         var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ma, s);
     })();
-</script>";
-        } else {
-            return '';
-        }
+</script>
+";
+
+
+        return $traceJs . $this->thirdTraceJsStr;
     }
 
     /**
@@ -105,11 +161,13 @@ class Trace extends Service
     public function getTraceCategoryJsCode($categoryName)
     {
         if ($this->traceJsEnable && $categoryName) {
+            
             return "<script type=\"text/javascript\">
     var _maq = _maq || [];
     _maq.push(['category', '".$categoryName."']);
 </script>";
         } else {
+            
             return '';
         }
     }
@@ -119,14 +177,17 @@ class Trace extends Service
      * @return String, 产品页面的js Code
      * <?= Yii::$service->page->trace->getTraceProductJsCode($sku)  ?>
      */
-    public function getTraceProductJsCode($sku)
+    public function getTraceProductJsCode($sku, $spu='')
     {
         if ($this->traceJsEnable && $sku) {
+            
             return "<script type=\"text/javascript\">
     var _maq = _maq || [];
     _maq.push(['sku', '".$sku."']);
+    _maq.push(['spu', '".$spu."']);
 </script>";
         } else {
+            
             return '';
         }
     }
@@ -151,11 +212,13 @@ class Trace extends Service
     public function getTraceCartJsCode($cart)
     {
         if ($this->traceJsEnable && $cart) {
+            
             return "<script type=\"text/javascript\">
     var _maq = _maq || [];
     _maq.push(['cart', ".$cart."]);
 </script>";
         } else {
+            
             return '';
         }
     }
@@ -171,11 +234,13 @@ class Trace extends Service
     public function getTraceSearchJsCode($search)
     {
         if ($this->traceJsEnable && $search) {
+            
             return "<script type=\"text/javascript\">
     var _maq = _maq || [];
     _maq.push(['search', ".$search." ]);
 </script>";
         } else {
+            
             return '';
         }
     }

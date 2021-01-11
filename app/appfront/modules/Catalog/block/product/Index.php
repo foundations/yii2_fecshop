@@ -16,7 +16,7 @@ use Yii;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class Index
+class Index extends \yii\base\BaseObject
 {
     // 当前产品
     protected $_product;
@@ -32,29 +32,36 @@ class Index
     protected $_image_thumbnails;
     // 在产品详细页面，在产品描述部分显示的产品图片列表
     protected $_image_detail;
-    
+    protected $_brandName;
     /**
      * 为了可以使用rewriteMap，use 引入的文件统一采用下面的方式，通过Yii::mapGet()得到className和Object
      */
     protected $_reviewHelperName = '\fecshop\app\appfront\modules\Catalog\helpers\Review';
     protected $_reviewHelper;
+    protected $_currentSpuAttrValArr;
+    protected $_spuAttrShowAsImgArr;
     
-    public function __construct()
+    public function init()
     {
         /**
          * 通过Yii::mapGet() 得到重写后的class类名以及对象。Yii::mapGet是在文件@fecshop\yii\Yii.php中
          */
         list($this->_reviewHelperName,$this->_reviewHelper) = Yii::mapGet($this->_reviewHelperName);  
-        
+        parent::init();
     }
-    
-    
     
     public function getLastData()
     {
         $reviewHelper = $this->_reviewHelper;
-        $productImgSize = Yii::$app->controller->module->params['productImgSize'];
-        $productImgMagnifier = Yii::$app->controller->module->params['productImgMagnifier'];
+        //$productImgSize = Yii::$app->controller->module->params['productImgSize'];
+        //$productImgMagnifier = Yii::$app->controller->module->params['productImgMagnifier'];
+        
+        $appName = Yii::$service->helper->getAppName();
+        $product_small_img_width = Yii::$app->store->get($appName.'_catalog','product_small_img_width');
+        $product_small_img_height = Yii::$app->store->get($appName.'_catalog','product_small_img_height');
+        $product_middle_img_width = Yii::$app->store->get($appName.'_catalog','product_middle_img_width');
+        $productImgMagnifier = Yii::$app->store->get($appName.'_catalog','productImgMagnifier');
+        
         if (!$this->initProduct()) {
             Yii::$service->url->redirect404();
             return;
@@ -64,8 +71,11 @@ class Index
         list($review_count, $reviw_rate_star_average, $reviw_rate_star_info) = $reviewHelper::getReviewAndStarCount($this->_product);
         
         $this->filterProductImg($this->_product['image']);
+        // var_dump($this->_product['attr_group']);
         $groupAttrInfo = Yii::$service->product->getGroupAttrInfo($this->_product['attr_group']);
+        //var_dump($groupAttrInfo);
         $groupAttrArr = $this->getGroupAttrArr($groupAttrInfo);
+        //var_dump($groupAttrArr );
         return [
             'groupAttrArr'              => $groupAttrArr,
             'name'                      => Yii::$service->store->getStoreAttrVal($this->_product['name'], 'name'),
@@ -82,9 +92,9 @@ class Index
             'price_info'                => $this->getProductPriceInfo(),
             'tier_price'                => $this->_product['tier_price'],
             'media_size' => [
-                'small_img_width'       => $productImgSize['small_img_width'],
-                'small_img_height'      => $productImgSize['small_img_height'],
-                'middle_img_width'      => $productImgSize['middle_img_width'],
+                'small_img_width'       => $product_small_img_width,
+                'small_img_height'      => $product_small_img_height,
+                'middle_img_width'      => $product_middle_img_width,
             ],
             'productImgMagnifier'       => $productImgMagnifier,
             'options'                   => $this->getSameSpuInfo(),
@@ -93,14 +103,19 @@ class Index
             'description'               => Yii::$service->store->getStoreAttrVal($this->_product['description'], 'description'),
             '_id'                       => $this->_product[$productPrimaryKey],
             'buy_also_buy'              => $this->getProductBuyAlsoBuy(),
+            'brand_name' => $this->_brandName,
         ];
     }
     public function getGroupAttrArr($groupAttrInfo){
         $gArr = [];
+        if ($this->_product['brand_id']) {
+            $brandName = Yii::$service->page->translate->__('brand');
+            $this->_brandName = $gArr[$brandName] = Yii::$service->product->brand->getBrandNameById($this->_product['brand_id']);
+        }
         // 增加重量，长宽高，体积重等信息
         if ($this->_product['weight']) {
             $weightName = Yii::$service->page->translate->__('weight');
-            $gArr[$weightName] = $this->_product['weight'].' Kg';
+            $gArr[$weightName] = $this->_product['weight'].' g';
         }
         if ($this->_product['long']) {
             $longName = Yii::$service->page->translate->__('long');
@@ -116,7 +131,7 @@ class Index
         }
         if ($this->_product['volume_weight']) {
             $volumeWeightName = Yii::$service->page->translate->__('volume weight');
-            $gArr[$volumeWeightName] = $this->_product['volume_weight'].' Kg';
+            $gArr[$volumeWeightName] = $this->_product['volume_weight'].' g';
         }
         if (is_array($groupAttrInfo)) {
             foreach ($groupAttrInfo as $attr => $info) {
@@ -132,6 +147,19 @@ class Index
                     }
                     $attr = Yii::$service->page->translate->__($attr);
                     $gArr[$attr] = $attrVal;
+                } else if (isset($this->_product['attr_group_info']) && is_array($this->_product['attr_group_info'])) {
+                    $attr_group_info = $this->_product['attr_group_info'];
+                    if (isset($attr_group_info[$attr]) && $attr_group_info[$attr]) {
+                        $attrVal = $attr_group_info[$attr];
+                        // get translate 
+                        if (isset($info['display']['lang']) && $info['display']['lang'] && is_array($attrVal)) {
+                            $attrVal = Yii::$service->store->getStoreAttrVal($attrVal, $attr);
+                        } else if ($attrVal && !is_array($attrVal)) {
+                            $attrVal = Yii::$service->page->translate->__($attrVal);
+                        }
+                        $attr = Yii::$service->page->translate->__($attr);
+                        $gArr[$attr] = $attrVal;
+                    }
                 }
             }
         }
@@ -147,9 +175,12 @@ class Index
     public function filterProductImg($product_images){
         $this->_image_thumbnails        = $product_images;
         //$this->_image_detail['gallery'] = $product_images['gallery'];
+        if (isset($product_images['main']['is_detail']) && $product_images['main']['is_detail'] == 1 ) {
+            $this->_image_detail[] = $product_images['main'];
+        }
         if (isset($product_images['gallery']) && is_array($product_images['gallery'])) {
             $thumbnails_arr = [];
-            $detail_arr     = [];
+            //$detail_arr     = [];
             foreach ($product_images['gallery'] as $one) {
                 $is_thumbnails  = $one['is_thumbnails'];
                 $is_detail      = $one['is_detail'];
@@ -157,16 +188,12 @@ class Index
                     $thumbnails_arr[]   = $one;
                 }
                 if($is_detail == 1){
-                    $detail_arr[]       = $one;
+                    $this->_image_detail[]       = $one;
                 }
             }
             $this->_image_thumbnails['gallery'] = $thumbnails_arr;
-            $this->_image_detail     = $detail_arr;
+            //$this->_image_detail     = $detail_arr;
         }
-        if (isset($product_images['main']['is_detail']) && $product_images['main']['is_detail'] == 1 ) {
-            $this->_image_detail[] = $product_images['main'];
-        }
-        
     }
     
     /**废弃
@@ -245,6 +272,9 @@ class Index
         return Yii::$service->product->spuCollData($select, $this->_productSpuAttrArr, $spu);
     }
 
+    // 商城产品页面spu属性，显示在第一排的属性
+    protected $_spuAttrShowAsTop;
+    protected $_spuAttrShowAsTopArr;
     /**
      * @return Array得到spu下面的sku的spu属性的数据。用于在产品
      * 得到spu下面的sku的spu属性的数据。用于在产品详细页面显示其他的sku
@@ -256,13 +286,13 @@ class Index
         $groupAttr = Yii::$service->product->getGroupAttr($this->_product['attr_group']);
         // 当前的产品对应的spu属性组的属性，譬如 ['color','size','myyy']
         $this->_productSpuAttrArr = Yii::$service->product->getSpuAttr($this->_product['attr_group']);
-        //var_dump($this->_productSpuAttrArr);exit;
-        $this->_spuAttrShowAsImg = Yii::$service->product->getSpuImgAttr($this->_product['attr_group']);
         if (!is_array($this->_productSpuAttrArr) || empty($this->_productSpuAttrArr)) {
+            
             return;
         }
-        // 当前的spu属性对应值数组 $['color'] = 'red'
-
+        $this->_spuAttrShowAsTop = $this->_productSpuAttrArr[0];
+        //var_dump($this->_productSpuAttrArr);exit;
+        $this->_spuAttrShowAsImg = Yii::$service->product->getSpuImgAttr($this->_product['attr_group']);
         $this->_currentSpuAttrValArr = [];
         foreach ($this->_productSpuAttrArr as $spuAttr) {
             if (isset($this->_product['attr_group_info']) && $this->_product['attr_group_info']) {  // mysql
@@ -303,8 +333,16 @@ class Index
                         $this->_spuAttrShowAsImgArr[$showAsImgVal] = $one;
                     }
                 }
+                // 显示在顶部的spu属性（当没有图片属性的时候使用）
+                $showAsTopVal = $one[$this->_spuAttrShowAsTop];
+                if ($showAsTopVal) {
+                    if (!isset($this->_spuAttrShowAsTopArr[$this->_spuAttrShowAsTop])) {
+                        $this->_spuAttrShowAsTopArr[$showAsTopVal] = $one;
+                    }
+                }
             }
         }
+        
         // 得到各个spu属性对应的值的集合。
         foreach ($spuValColl as $spuAttr => $attrValArr) {
             $spuValColl[$spuAttr] = array_unique($attrValArr);
@@ -317,10 +355,6 @@ class Index
             foreach ($attrValArr as $attrVal) {
                 $attr_info = $this->getSpuAttrInfo($spuAttr, $attrVal, $reverse_val_spu);
                 $attr_coll[] = $attr_info;
-
-                //[
-                //    'attr_val' => $attr,
-                //];
             }
             $spuShowArr[] = [
                 'label' => $spuAttr,
@@ -346,8 +380,6 @@ class Index
         $return = [];
         $return['attr_val'] = $attrVal;
         $return['active'] = 'noactive';
-
-        //echo $reverse_key."<br/>";
         if (isset($reverse_val_spu[$reverse_key]) && is_array($reverse_val_spu[$reverse_key])) {
             $return['active'] = 'active';
             $arr = $reverse_val_spu[$reverse_key];
@@ -357,7 +389,7 @@ class Index
             if ($spuAttr == $this->_spuAttrShowAsImg) {
                 $return['show_as_img'] = $arr['main_img'];
             }
-        } else {
+        } else if ($this->_spuAttrShowAsImg){
             // 如果是图片，不存在，则使用备用的。
             if ($spuAttr == $this->_spuAttrShowAsImg) {
                 $return['active'] = 'active';
@@ -368,6 +400,16 @@ class Index
                     }
                 }
                 $return['show_as_img'] = $arr['main_img'];
+            }
+        } else if ($this->_spuAttrShowAsTop){
+            if ($spuAttr == $this->_spuAttrShowAsTop) {
+                $return['active'] = 'active';
+                $arr = $this->_spuAttrShowAsTopArr[$attrVal];
+                if (is_array($arr) && !empty($arr)) {
+                    foreach ($arr as $k=>$v) {
+                        $return[$k] = $v;
+                    }
+                }
             }
         }
         if ($active) {
@@ -411,6 +453,12 @@ class Index
                 }
             }
             if (!empty($d_arr)) {
+                // 不在里面的规格属性（新建产品添加的规格属性），添加进去
+                foreach ($data as $size=>$d) {
+                    if (!isset($d_arr[$size])) {
+                        $d_arr[$size] = $data[$size];
+                    }
+                }
                 return $d_arr;
             }
         }
@@ -488,7 +536,9 @@ class Index
     // 面包屑导航
     protected function breadcrumbs($name)
     {
-        if (Yii::$app->controller->module->params['product_breadcrumbs']) {
+        $appName = Yii::$service->helper->getAppName();
+        $category_breadcrumbs = Yii::$app->store->get($appName.'_catalog','product_breadcrumbs');
+        if ($category_breadcrumbs == Yii::$app->store->enable) {
             Yii::$service->page->breadcrumbs->addItems(['name' => $name]);
         } else {
             Yii::$service->page->breadcrumbs->active = false;

@@ -28,7 +28,7 @@ use fecadmin\models\AdminRole;
 				<input type="hidden"  value="<?=  $_id; ?>" size="30" name="editFormData[_id]" class="textInput ">
 				
 				<fieldset id="fieldset_table_qbe">
-					<legend style="color:#cc0000"><?= Yii::$service->page->translate->__('Service Databse Config') ?></legend>
+					<legend style="color:#cc0000"><?= Yii::$service->page->translate->__('Base Config') ?></legend>
 					<div>
 						<?= $editBar; ?>
 					</div>
@@ -66,6 +66,11 @@ use fecadmin\models\AdminRole;
     line-height: 30px;
     font-size: 13px;
     font-weight: 500;
+}
+
+.pageContent .combox {
+        margin-left:5px;
+        
 }
 </style>
 

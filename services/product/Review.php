@@ -32,13 +32,11 @@ use Yii;
  */
 class Review extends Service
 {
-    
     /**
      * $storagePrex , $storage , $storagePath 为找到当前的storage而设置的配置参数
      * 可以在配置中更改，更改后，就会通过容器注入的方式修改相应的配置值
      */
     public $storage; //     = 'ReviewMysqldb';   // ReviewMysqldb | ReviewMongodb 当前的storage，如果在config中配置，那么在初始化的时候会被注入修改
-
     /**
      * 设置storage的path路径，
      * 如果不设置，则系统使用默认路径
@@ -58,6 +56,13 @@ class Review extends Service
     public function init()
     {
         parent::init();
+        // 初始化$this->filterByLang
+        $appName = Yii::$service->helper->getAppName();
+        $reviewFilterByLang = Yii::$app->store->get($appName.'_catalog','review_filterByLang');
+        $this->filterByLang = ($reviewFilterByLang == Yii::$app->store->enable) ? true : false;
+        $reviewOnlyOrderedProduct = Yii::$app->store->get($appName.'_catalog','review_OnlyOrderedProduct');
+        $this->reviewOnlyOrderedProduct = ($reviewOnlyOrderedProduct == Yii::$app->store->enable) ? true : false;
+        $this->reviewMonth = Yii::$app->store->get($appName.'_catalog','review_MonthLimit');
         // 从数据库配置中得到值, 设置成当前service存储，是Mysqldb 还是 Mongodb
         $config = Yii::$app->store->get('service_db', 'product_review');
         $this->storage = 'ReviewMysqldb';
@@ -67,6 +72,7 @@ class Review extends Service
         $currentService = $this->getStorageService($this);
         $this->_review = new $currentService();
     }
+    
     // 动态更改为mongodb model
     public function changeToMongoStorage()
     {
@@ -97,6 +103,7 @@ class Review extends Service
     {
         return $this->_review->activeStatus();
     }
+    
     public function refuseStatus()
     {
         return $this->_review->refuseStatus();
@@ -106,6 +113,7 @@ class Review extends Service
     {
         return $this->_review->getPrimaryKey();
     }
+    
     /**
      * @param $spu | String.
      * 通过spu找到评论总数。
@@ -114,6 +122,7 @@ class Review extends Service
     {
         return $this->_review->getCountBySpu($spu);
     }
+    
     /**
      * example filter:
      * [
@@ -131,6 +140,7 @@ class Review extends Service
     {
         return $this->_review->getListBySpu($filter);
     }
+    
     /**
      * @param $review_data | Array
      *
@@ -140,26 +150,29 @@ class Review extends Service
     {
         return $this->_review->addReview($review_data);
     }
+    
     public function updateReview($review_data)
     {
         return $this->_review->updateReview($review_data);
     }
+    
     /**
      * 查看review 的列表
      */
-    public function list($filter)
+    public function lists($filter)
     {
-        return $this->_review->list($filter);
+        return $this->_review->lists($filter);
     }
+    
     public function getByReviewId($_id)
     {
         return $this->_review->getByReviewId($_id);
     }
+    
     public function getByPrimaryKey($primaryKey)
     {
         return $this->_review->getByPrimaryKey($primaryKey);
     }
-    
     
     public function coll($filter = '')
     {
@@ -198,8 +211,6 @@ class Review extends Service
     {
         return $this->_review->getReviewsByUserId($filter);
     }
-    
-    
     
     
 }

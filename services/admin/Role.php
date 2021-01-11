@@ -20,6 +20,7 @@ use fecshop\services\Service;
  */
 class Role extends Service
 {
+    public $cacheRoleIdsTimeout = 3600;
     
     const ADMIN_ROLEIDS_RESOURCES = 'admin_roleids_resources';
     
@@ -64,6 +65,7 @@ class Role extends Service
 
             return $one;
         } else {
+            
             return new $this->_roleModelName();
         }
     }
@@ -158,6 +160,7 @@ class Role extends Service
             $roleData['role_name'] = $one['role_name'];
         } else {
             Yii::$service->helper->errors->add('role name can not empty');
+            
             return false;
         }
         if (isset($one['role_description'])) {
@@ -196,6 +199,7 @@ class Role extends Service
         }
         $one = $query->one();
         if (!empty($one)) {
+            
             return false;
         }
 
@@ -231,12 +235,14 @@ class Role extends Service
     }
 
     /**
+     * * @param $fromCache | boolean, 是否使用缓存？
      * @return array
      * 得到当前用户的可用的resources数组
      */
-    public function getCurrentRoleResources(){
-        if (!$this->_current_role_resources) {
+    public function getCurrentRoleResources($fromCache=true){
+        if (!$this->_current_role_resources || !$fromCache) {
             if (Yii::$app->user->isGuest) {
+                
                 return [];
             }
             $user = Yii::$app->user->identity;
@@ -257,10 +263,11 @@ class Role extends Service
                 }
             }
             if (empty($role_ids)) {
+                
                 return [];
             }
 
-            $this->_current_role_resources = $this->getRoleResourcesByRoleIds($role_ids);
+            $this->_current_role_resources = $this->getRoleResourcesByRoleIds($role_ids, $fromCache);
         }
 
         return $this->_current_role_resources;
@@ -268,16 +275,20 @@ class Role extends Service
     
     /**
      * @param array $role_ids
+     * @param $fromCache | boolean, 是否使用缓存？
      * @return array , 包含url_key_id的数组
      *  通过$role_ids数组，获得相应的所有url_key_id数组
      */
-    public function getRoleResourcesByRoleIds($role_ids){
+    public function getRoleResourcesByRoleIds($role_ids, $fromCache=true){
         if (empty($role_ids)) {
             return [];
         }
         sort($role_ids);
         $role_ids_cache_str = self::ADMIN_ROLEIDS_RESOURCES . implode('-', $role_ids);
-        $resources = Yii::$app->cache->get($role_ids_cache_str);
+        $resources = null;
+        if ($fromCache) {
+            $resources = Yii::$app->cache->get($role_ids_cache_str);
+        }
         if (!$resources) {
             // 通过role_ids 得到url_keys
             $roleUrlKeys = Yii::$service->admin->roleUrlKey->coll([
@@ -309,11 +320,12 @@ class Role extends Service
                 }
             }
             
-            Yii::$app->cache->set($role_ids_cache_str, $urlKeyIds);
+            Yii::$app->cache->set($role_ids_cache_str, $urlKeyIds, $cacheRoleIdsTimeout);
             
             return $urlKeyIds;
         }
         
         return $resources;
     }
+    
 }

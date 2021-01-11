@@ -39,8 +39,12 @@ class LoginController extends AppserverController
         }
         $email       = Yii::$app->request->post('email');
         $password    = Yii::$app->request->post('password');
-        $loginParam  = \Yii::$app->getModule('customer')->params['login'];
-        $loginCaptchaActive = isset($loginParam['loginPageCaptcha']) ? $loginParam['loginPageCaptcha'] : false;
+        //$loginParam  = \Yii::$app->getModule('customer')->params['login'];
+        //$loginCaptchaActive = isset($loginParam['loginPageCaptcha']) ? $loginParam['loginPageCaptcha'] : false;
+        $appName = Yii::$service->helper->getAppName();
+        $loginPageCaptcha = Yii::$app->store->get($appName.'_account', 'loginPageCaptcha');
+        
+        $loginCaptchaActive = ($loginPageCaptcha == Yii::$app->store->enable)  ? true : false;
         if($loginCaptchaActive){
             $captcha    = Yii::$app->request->post('captcha');
             if(!Yii::$service->helper->captcha->validateCaptcha($captcha)){
@@ -106,8 +110,13 @@ class LoginController extends AppserverController
             
             return $responseData;
         }
-        $loginParam = \Yii::$app->getModule('customer')->params['login'];
-        $loginCaptchaActive = isset($loginParam['loginPageCaptcha']) ? $loginParam['loginPageCaptcha'] : false;
+        $appName = Yii::$service->helper->getAppName();
+        $loginPageCaptcha = Yii::$app->store->get($appName.'_account', 'loginPageCaptcha');
+        
+        $loginCaptchaActive = ($loginPageCaptcha == Yii::$app->store->enable)  ? true : false;
+        
+        //$loginParam = \Yii::$app->getModule('customer')->params['login'];
+        //$loginCaptchaActive = isset($loginParam['loginPageCaptcha']) ? $loginParam['loginPageCaptcha'] : false;
         $googleRedirectUrl   = Yii::$app->request->get('googleRedirectUrl');
         $facebookRedirectUrl = Yii::$app->request->get('facebookRedirectUrl');
         
@@ -195,9 +204,9 @@ class LoginController extends AppserverController
             return $responseData;
         }
         
-        $isBindNew = $wxCode = Yii::$app->request->post('isBindNew');
-        $email = $wxCode = Yii::$app->request->post('email');
-        $password = $wxCode = Yii::$app->request->post('password');
+        $isBindNew = Yii::$app->request->post('isBindNew');
+        $email = Yii::$app->request->post('email');
+        $password = Yii::$app->request->post('password');
         if ($isBindNew == 1) {  // 进行注册
             // 查看该email是否存在
             if (Yii::$service->customer->isRegistered($email)) {
@@ -275,7 +284,7 @@ class LoginController extends AppserverController
         $session_key = $wxUserInfo['session_key'];
         $openid = $wxUserInfo['openid'];
         // 通过 $openid  得到 user
-        $customer = Yii::$service->customer->getByWxOpenid($openid);
+        $customer = Yii::$service->customer->getByWxMicroOpenid($openid);
         // 如果$openid 没有 对应的customer，则需要先绑定或者创建相应的账户
         if (!$customer) {
             $code = Yii::$service->helper->appserver->account_wx_get_customer_by_openid_fail;

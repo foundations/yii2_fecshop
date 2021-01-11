@@ -16,13 +16,15 @@ use Yii;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class Forgotpassword
+class Forgotpassword extends \yii\base\BaseObject
 {
     public function getLastData()
     {
-        $forgotPasswordParam = \Yii::$app->getModule('customer')->params['forgotPassword'];
-        $forgotCaptcha = isset($forgotPasswordParam['forgotCaptcha']) ? $forgotPasswordParam['forgotCaptcha'] : false;
-
+        //$forgotPasswordParam = \Yii::$app->getModule('customer')->params['forgotPassword'];
+        //$forgotCaptcha = isset($forgotPasswordParam['forgotCaptcha']) ? $forgotPasswordParam['forgotCaptcha'] : false;
+        $appName = Yii::$service->helper->getAppName();
+        $forgotCaptcha = Yii::$app->store->get($appName.'_account', 'forgotPasswordCaptcha');
+        $forgotCaptcha = ($forgotCaptcha == Yii::$app->store->enable)  ? true : false;
         return [
             'forgotCaptcha' => $forgotCaptcha,
         ];
@@ -31,8 +33,11 @@ class Forgotpassword
     public function sendForgotPasswordMailer($editForm)
     {
         $captcha = $editForm['captcha'];
-        $forgotPasswordParam = \Yii::$app->getModule('customer')->params['forgotPassword'];
-        $forgotCaptcha = isset($forgotPasswordParam['forgotCaptcha']) ? $forgotPasswordParam['forgotCaptcha'] : false;
+        //$forgotPasswordParam = \Yii::$app->getModule('customer')->params['forgotPassword'];
+        //$forgotCaptcha = isset($forgotPasswordParam['forgotCaptcha']) ? $forgotPasswordParam['forgotCaptcha'] : false;
+        $appName = Yii::$service->helper->getAppName();
+        $forgotCaptcha = Yii::$app->store->get($appName.'_account', 'forgotPasswordCaptcha');
+        $forgotCaptcha = ($forgotCaptcha == Yii::$app->store->enable)  ? true : false;
         // 如果开启了验证码，但是验证码验证不正确就报错返回。
         if ($forgotCaptcha && !$captcha) {
             Yii::$service->page->message->addError(['Captcha can not empty']);

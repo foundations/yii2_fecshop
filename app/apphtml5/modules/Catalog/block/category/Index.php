@@ -16,7 +16,7 @@ use yii\base\InvalidValueException;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class Index
+class Index  extends \yii\base\BaseObject
 {
     // 当前分类对象
     protected $_category;
@@ -47,7 +47,34 @@ class Index
     protected $_filter_attr;
     protected $_numPerPageVal;
     protected $_page_count;
-
+    
+    public function init()
+    {
+        parent::init();
+        $this->getQuerySort();
+    }
+    protected $_sort_items;
+    public function getQuerySort()
+    {
+        if (!$this->_sort_items) {
+            $category_sorts = Yii::$app->store->get('category_sort');
+            if (is_array($category_sorts)) {
+                foreach ($category_sorts as $one) {
+                    $sort_key = $one['sort_key'];
+                    $sort_label = $one['sort_label'];
+                    $sort_db_columns = $one['sort_db_columns'];
+                    $sort_direction = $one['sort_direction'];
+                    $this->_sort_items[$sort_key] = [
+                        'label'        => $sort_label,
+                        'db_columns'   => $sort_db_columns,
+                        'direction'    => $sort_direction,
+                    ];
+                }
+            }
+        }
+        
+    }
+    
     public function getLastData()
     {
         // 每页显示的产品个数，进行安全验证，如果个数不在预先设置的值内，则会报错。
@@ -80,7 +107,7 @@ class Index
             'products'          => $products,
             'query_item'        => $query_item,
             'refine_by_info'    => $this->getRefineByInfo(),
-            'filter_info'       => $this->getFilterInfo(),
+            'filter_info'       => Yii::$service->category->getFilterInfo($this->_category, $this->_where),
             'filter_price'      => $this->getFilterPrice(),
             'filter_category'   => $this->getFilterCategoryHtml(),
             'page_count'        => $page_count,
@@ -127,6 +154,10 @@ class Index
         if (!$filter_category) {
             $filter_category = $this->getFilterCategory();
         }
+        if (!Yii::$service->category->isEnableFilterSubCategory()) {
+            
+            return $str;
+        }
         if (is_array($filter_category) && !empty($filter_category)) {
             $str .= '<ul>';
             foreach ($filter_category as $cate) {
@@ -164,9 +195,13 @@ class Index
      */
     protected function getQueryItem()
     {
-        $category_query  = Yii::$app->controller->module->params['category_query'];
-        $numPerPage      = $category_query['numPerPage'];
-        $sort            = $category_query['sort'];
+        //$category_query  = Yii::$app->controller->module->params['category_query'];
+        //$numPerPage      = $category_query['numPerPage'];
+        
+        $appName = Yii::$service->helper->getAppName();
+        $numPerPage = Yii::$app->store->get($appName.'_catalog','category_query_numPerPage');
+        $numPerPage = explode(',', $numPerPage);
+        $sort                   = $this->_sort_items;
         $frontNumPerPage = [];
         if (is_array($numPerPage) && !empty($numPerPage)) {
             $attrUrlStr = $this->_numPerPage;
@@ -182,6 +217,7 @@ class Index
             }
         }
         $frontSort = [];
+        $hasSelect = false;
         if (is_array($sort) && !empty($sort)) {
             $attrUrlStr = $this->_sort;
             $dirUrlStr  = $this->_direction;
@@ -197,7 +233,9 @@ class Index
                     'val' => $direction,
                 ];
                 $urlInfo = Yii::$service->url->category->getFilterSortAttrUrl($arr, $this->_page);
-                
+                if ($urlInfo['selected']) {
+                    $hasSelect = true;
+                }
                 $frontSort[] = [
                     'label'     => $label,
                     'value'     => $np,
@@ -205,6 +243,9 @@ class Index
                     'selected'  => $urlInfo['selected'],
                 ];
             }
+        }
+        if (!$hasSelect ){ // 默认第一个为选中的排序方式
+            $frontSort[0]['selected'] = true;
         }
         $data = [
             'frontNumPerPage' => $frontNumPerPage,
@@ -223,18 +264,7 @@ class Index
      */
     protected function getFilterAttr()
     {
-        if (!$this->_filter_attr) {
-            $filter_default               = Yii::$app->controller->module->params['category_filter_attr'];
-            $current_fileter_select       = $this->_category['filter_product_attr_selected'];
-            $current_fileter_unselect     = $this->_category['filter_product_attr_unselected'];
-            $current_fileter_select_arr   = $this->getFilterArr($current_fileter_select);
-            $current_fileter_unselect_arr = $this->getFilterArr($current_fileter_unselect);
-            $filter_attrs                 = array_merge($filter_default, $current_fileter_select_arr);
-            $filter_attrs                 = array_diff($filter_attrs, $current_fileter_unselect_arr);
-            $this->_filter_attr           = $filter_attrs;
-        }
-
-        return $this->_filter_attr;
+        return Yii::$service->category->getFilterAttr($this->_category);
     }
     /**
      * 得到分类侧栏用于属性过滤的部分数据
@@ -252,17 +282,24 @@ class Index
                 $attr = Yii::$service->url->category->urlStrConvertAttrVal($k);
                 //echo $attr;
                 if (in_array($attr, $filter_attrs)) {
+                    $refine_attr_str = '';
                     if ($attr == 'price') {
                         $refine_attr_str = $this->getFormatFilterPrice($v);
                         //$refine_attr_str = Yii::$service->url->category->urlStrConvertAttrVal($v);
                     } else {
-                        $refine_attr_str = Yii::$service->url->category->urlStrConvertAttrVal($v);
+                        $refine_attr_str = Yii::$service->category->getCustomCategoryFilterAttrItemLabel($k, $v);
+                        if (!$refine_attr_str) {
+                            $refine_attr_str = Yii::$service->url->category->urlStrConvertAttrVal($v);
+                        }
                     }
                     $removeUrlParamStr = $k.'='.$v;
                     $refine_attr_url   = Yii::$service->url->removeUrlParamVal($currentUrl, $removeUrlParamStr);
+                    $attrLabel = Yii::$service->category->getCustomCategoryFilterAttrLabel($attr);
                     $refineInfo[] = [
                         'name' =>  $refine_attr_str,
                         'url'  =>  $refine_attr_url,
+                        'attr' => $attr,
+                        'attrLabel' => $attrLabel,
                     ];
                 }
             }
@@ -277,30 +314,24 @@ class Index
 
         return $refineInfo;
     }
-    /**
-     * 侧栏除价格外的其他属性过滤部分
-     */
-    protected function getFilterInfo()
-    {
-        $filter_info  = [];
-        $filter_attrs = $this->getFilterAttr();
-        foreach ($filter_attrs as $attr) {
-            if ($attr != 'price') {
-                $filter_info[$attr] = Yii::$service->product->getFrontCategoryFilter($attr, $this->_where);
-            }
-        }
-
-        return $filter_info;
-    }
+    
     /**
      * 侧栏价格过滤部分
      */
     protected function getFilterPrice()
     {
         $filter = [];
-        $priceInfo = Yii::$app->controller->module->params['category_query'];
-        if (isset($priceInfo['price_range']) && !empty($priceInfo['price_range']) && is_array($priceInfo['price_range'])) {
-            foreach ($priceInfo['price_range'] as $price_item) {
+        if (!Yii::$service->category->isEnableFilterPrice()) {
+            
+            return $filter;
+        }
+        //$priceInfo = Yii::$app->controller->module->params['category_query'];
+        $appName = Yii::$service->helper->getAppName();
+        $category_query_priceRange = Yii::$app->store->get($appName.'_catalog','category_query_priceRange');
+        $category_query_priceRange = explode(',',$category_query_priceRange);
+        if ( !empty($category_query_priceRange) && is_array($category_query_priceRange)) {
+            foreach ($category_query_priceRange as $price_item) {
+                $price_item = trim($price_item);
                 $info = Yii::$service->url->category->getFilterChooseAttrUrl($this->_filterPrice, $price_item, $this->_page);
                 $info['val'] = $this->getFormatFilterPrice($price_item);
                 $filter[$this->_filterPrice][] = $info;
@@ -327,62 +358,40 @@ class Index
 
         return $str;
     }
-    /**
-     * @param $str | String
-     * 字符串转换成数组。
-     */
-    protected function getFilterArr($str)
-    {
-        $arr = [];
-        if ($str) {
-            $str = str_replace('，', ',', $str);
-            $str_arr = explode(',', $str);
-            foreach ($str_arr as $a) {
-                $a = trim($a);
-                if ($a) {
-                    $arr[] = trim($a);
-                }
-            }
-        }
-
-        return $arr;
-    }
+    
     /**
      * 用于搜索条件的排序部分
      */
     protected function getOrderBy()
     {
         $primaryKey = Yii::$service->category->getPrimaryKey();
-        $sort       = Yii::$app->request->get($this->_sort);
-        $direction  = Yii::$app->request->get($this->_direction);
+        $sort = Yii::$app->request->get($this->_sort);
+        $direction = Yii::$app->request->get($this->_direction);
 
-        $category_query_config = Yii::$app->controller->module->params['category_query'];
-        if (isset($category_query_config['sort'])) {
-            $sortConfig = $category_query_config['sort'];
-            if (is_array($sortConfig)) {
-                //return $category_query_config['numPerPage'][0];
-                if ($sort && isset($sortConfig[$sort])) {
-                    $orderInfo = $sortConfig[$sort];
-                } else {
-                    foreach ($sortConfig as $k => $v) {
-                        $orderInfo = $v;
-                        if (!$direction) {
-                            $direction = $v['direction'];
-                        }
-                        break;
+        $sortConfig = $this->_sort_items;;
+        if (is_array($sortConfig)) {
+            if ($sort && isset($sortConfig[$sort])) {
+                $orderInfo = $sortConfig[$sort];
+            } else {
+                foreach ($sortConfig as $k => $v) {
+                    $orderInfo = $v;
+                    if (!$direction) {
+                        $direction = $v['direction'];
                     }
+                    break;
                 }
-                $db_columns = $orderInfo['db_columns'];
-                if ($direction == 'desc') {
-                    $direction = -1;
-                } else {
-                    $direction = 1;
-                }
-                //var_dump([$db_columns => $direction]);
-
-                return [$db_columns => $direction];
             }
+            $db_columns = $orderInfo['db_columns'];
+            $storageName = Yii::$service->product->serviceStorageName();
+            if ($direction == 'desc') {
+                $direction =  $storageName == 'mongodb' ? -1 :  SORT_DESC;
+            } else {
+                $direction = $storageName == 'mongodb' ? 1 :SORT_ASC;
+            }
+            
+            return [$db_columns => $direction];
         }
+        
     }
     /**
      * 分类页面的产品，每页显示的产品个数。
@@ -394,7 +403,10 @@ class Index
     {
         if (!$this->_numPerPageVal) {
             $numPerPage = Yii::$app->request->get($this->_numPerPage);
-            $category_query_config = Yii::$app->getModule('catalog')->params['category_query'];
+            //$category_query_config = Yii::$app->getModule('catalog')->params['category_query'];
+            $appName = Yii::$service->helper->getAppName();
+            $categoryConfigNumPerPage = Yii::$app->store->get($appName.'_catalog','category_query_numPerPage');
+            $category_query_config['numPerPage'] = explode(',',$categoryConfigNumPerPage);
             if (!$numPerPage) {
                 if (isset($category_query_config['numPerPage'])) {
                     if (is_array($category_query_config['numPerPage'])) {
@@ -429,15 +441,15 @@ class Index
      */
     protected function getCategoryProductColl()
     {
+        $productPrimaryKey = Yii::$service->product->getPrimaryKey();
         $select = [
-                'sku', 'spu', 'name', 'image',
+                $productPrimaryKey, 'sku', 'spu', 'name', 'image',
                 'price', 'special_price',
                 'special_from', 'special_to',
                 'url_key', 'score',
             ];
-        $category_query = Yii::$app->getModule('catalog')->params['category_query'];
-        if (is_array($category_query['sort'])) {
-            foreach ($category_query['sort'] as $sort_item) {
+        if (is_array($this->_sort_items)) {
+            foreach ($this->_sort_items as $sort_item) {
                 $select[] = $sort_item['db_columns'];
             }
         }
@@ -518,7 +530,10 @@ class Index
     // 面包屑导航
     protected function breadcrumbs($name)
     {
-        if (Yii::$app->controller->module->params['category_breadcrumbs']) {
+        $appName = Yii::$service->helper->getAppName();
+        $category_breadcrumbs = Yii::$app->store->get($appName.'_catalog','category_breadcrumbs');
+        
+        if ($category_breadcrumbs == Yii::$app->store->enable) {
             $parent_info = Yii::$service->category->getAllParentInfo($this->_category['parent_id']);
             if (is_array($parent_info) && !empty($parent_info)) {
                 foreach ($parent_info as $info) {

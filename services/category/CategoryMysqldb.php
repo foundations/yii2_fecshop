@@ -26,27 +26,31 @@ class CategoryMysqldb extends Service implements CategoryInterface
 
     protected $_categoryModel;
     
+    protected $_categoryProductModelName = '\fecshop\models\mysqldb\CategoryProduct';
+
+    protected $_categoryProductModel;
+    
     protected $serializeAttrs = [
         'name',
         'menu_custom',
         'description',
-        
         'title',
         'meta_keywords',
         'meta_description',
-        
     ];
     
     public function init()
     {
         parent::init();
         list($this->_categoryModelName, $this->_categoryModel) = Yii::mapGet($this->_categoryModelName);
+        list($this->_categoryProductModelName, $this->_categoryProductModel) = \Yii::mapGet($this->_categoryProductModelName);
     }
     
     // 保存的数据进行serialize序列化
     protected function serializeSaveData($one) 
     {
         if (!is_array($one) && !is_object($one)) {
+            
             return $one;
         }
         foreach ($one as $k => $v) {
@@ -54,12 +58,14 @@ class CategoryMysqldb extends Service implements CategoryInterface
                 $one[$k] = serialize($v);
             }
         }
+        
         return $one;
     }
     // 保存的数据进行serialize序列化
     protected function unserializeData($one) 
     {
         if (!is_array($one) && !is_object($one)) {
+            
             return $one;
         }
         foreach ($one as $k => $v) {
@@ -67,6 +73,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
                 $one[$k] = unserialize($v);
             }
         }
+        
         return $one;
     }
     
@@ -77,8 +84,10 @@ class CategoryMysqldb extends Service implements CategoryInterface
     {
         if ($primaryKey) {
             $one = $this->_categoryModel->findOne($primaryKey);
+            
             return $this->unserializeData($one) ;
         } else {
+            
             return new $this->_categoryModelName;
         }
     }
@@ -101,8 +110,10 @@ class CategoryMysqldb extends Service implements CategoryInterface
         if ($urlKey) {
             $urlKey = "/".trim($urlKey, "/");
             $one = $this->_categoryModel->findOne(['url_key' => $urlKey]);
+            
             return $this->unserializeData($one) ;
         } else {
+            
             return new $this->_categoryModelName;
         }
     }
@@ -121,6 +132,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
     public function getCategoryEnableStatus()
     {
         $model = $this->_categoryModel;
+        
         return $model::STATUS_ENABLE;
     }
 
@@ -130,6 +142,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
     public function getCategoryMenuShowStatus()
     {
         $model = $this->_categoryModel;
+        
         return $model::MENU_SHOW;
     }
 
@@ -156,6 +169,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
         foreach ($coll as $one) {
             $arr[] = $this->unserializeData($one) ;
         }
+        
         return [
             'coll' => $arr,
             'count'=> $query->limit(null)->offset(null)->count(),
@@ -208,8 +222,6 @@ class CategoryMysqldb extends Service implements CategoryInterface
             $model = new $this->_categoryModelName;
             $model->created_at = time();
             $model->created_user_id = \fec\helpers\CUser::getCurrentUserId();
-            //$primaryVal = new \MongoDB\BSON\ObjectId();
-            //$model->{$this->getPrimaryKey()} = $primaryVal;
             $parent_id = $one['parent_id'];
         }
         // 增加分类的级别字段level，从1级级别开始依次类推。
@@ -233,11 +245,13 @@ class CategoryMysqldb extends Service implements CategoryInterface
         if (!in_array($one['status'], $allowStatusArr)) {
             $one['status'] = $model::STATUS_ENABLE;
         }
+        $defaultLangName = Yii::$service->fecshoplang->getDefaultLangAttrVal($one['name'], 'name');
         $one = $this->serializeSaveData($one);
         $saveStatus = Yii::$service->helper->ar->save($model, $one);
+        $primaryVal = $model->id;
         $originUrl = $originUrlKey.'?'.$this->getPrimaryKey() .'='. $primaryVal;
         $originUrlKey = isset($one['url_key']) ? $one['url_key'] : '';
-        $defaultLangTitle = Yii::$service->fecshoplang->getDefaultLangAttrVal($one['name'], 'name');
+        $defaultLangTitle = $defaultLangName;
         $urlKey = Yii::$service->url->saveRewriteUrlKeyByStr($defaultLangTitle, $originUrl, $originUrlKey);
         $model->url_key = $urlKey;
         $model->save();
@@ -262,19 +276,16 @@ class CategoryMysqldb extends Service implements CategoryInterface
             $model = new $this->_categoryModelName;
             $model->created_at = time();
         }
-        
         $model->origin_mongo_id = $origin_mongo_id;
         $model->origin_mongo_parent_id = $origin_mongo_parent_id;
         $arr = $this->serializeSaveData($arr);
         $saveStatus = Yii::$service->helper->ar->save($model, $arr);
-        
         $originUrl = $originUrlKey.'?'.$this->getPrimaryKey() .'='. $model->id;
         $originUrlKey = isset($model['url_key']) ? $model['url_key'] : '';
         $defaultLangTitle = Yii::$service->fecshoplang->getDefaultLangAttrVal($arr['name'], 'name');
         $urlKey = Yii::$service->url->saveRewriteUrlKeyByStr($defaultLangTitle, $originUrl, $originUrlKey);
         $model->url_key = $urlKey;
-        $model->save();
-        
+        return $model->save();
     }
 
     /**
@@ -298,12 +309,14 @@ class CategoryMysqldb extends Service implements CategoryInterface
                     Yii::$service->url->removeRewriteUrlKey($url_key);
                     $model->delete();
                     $this->removeChildCate($id);
+                    // delete category product relation
+                    $this->removeCategoryProductRelationByCategoryId($id);
                 } else {
                     Yii::$service->helper->errors->add("Category Remove Errors:ID:{id} is not exist.", ['id' => $id]);
-
                     $deleteAll = false;
                 }
             }
+            
             return $deleteAll;
         } else {
             $id = $ids;
@@ -319,7 +332,9 @@ class CategoryMysqldb extends Service implements CategoryInterface
 
                 return false;
             }
+            $this->removeCategoryProductRelationByCategoryId($id);
         }
+        
         return true;
     }
 
@@ -335,6 +350,8 @@ class CategoryMysqldb extends Service implements CategoryInterface
                 $url_key = $one['url_key'];
                 Yii::$service->url->removeRewriteUrlKey($url_key);
                 $one->delete();
+                // delete category product relation
+                $this->removeCategoryProductRelationByCategoryId($idVal);
             }
         }
     }
@@ -355,8 +372,16 @@ class CategoryMysqldb extends Service implements CategoryInterface
         } else {
             $where = ['parent_id' => $rootCategoryId];
         }
-        $categorys = $this->_categoryModel->find()->asArray()->where($where)->all();
-        //var_dump($categorys);exit;
+        if ($appserver) {
+            $where['status']= $this->getCategoryEnableStatus();
+            $where['menu_show']= $this->getCategoryMenuShowStatus();
+        }
+        $orderBy = ['sort_order' => SORT_DESC];
+        $categorys = $this->_categoryModel->find()
+                    ->asArray()
+                    ->where($where)
+                    ->orderBy($orderBy)
+                    ->all();
         $idKey = $this->getPrimaryKey();
         if (!empty($categorys)) {
             foreach ($categorys as $cate) {
@@ -371,8 +396,6 @@ class CategoryMysqldb extends Service implements CategoryInterface
                 if ($appserver) {
                     $arr[$idVal]['url'] = '/catalog/category/'.$idVal;
                 }
-                //echo $arr[$idVal]['name'];
-
                 if ($this->hasChildCategory($idVal)) {
                     $arr[$idVal]['child'] = $this->getTreeArr($idVal, $lang, $appserver, $level+1);
                 }
@@ -386,6 +409,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
     {
         $one = $this->_categoryModel->find()->asArray()->where(['parent_id'=>$idVal])->one();
         if (!empty($one)) {
+            
             return true;
         }
 
@@ -426,6 +450,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
     protected function getParentCategory($parent_id)
     {
         if ($parent_id === 0) {
+            
             return [];
         }
         $category = $this->_categoryModel->find()->asArray()->where(['id' => $parent_id])->one();
@@ -445,6 +470,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
 
             return array_merge($parentCategory, $currentCategory);
         } else {
+            
             return [];
         }
     }
@@ -487,12 +513,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
 
     protected function getOneLevelCateChild($category)
     {
-        //'id' 		=> $currentId,
-        //'name' 		=> $currentName,
-        //'url_key'	=> $currentUrlKey,
-        //$category['current'] = true;
-        //$data[0] = $category;
-        $id = $category['id'];
+        $id = $category['_id'];
         $name = $category['name'];
         $url_key = $category['url_key'];
         $cate = $this->_categoryModel->find()->asArray()->where([
@@ -517,13 +538,12 @@ class CategoryMysqldb extends Service implements CategoryInterface
 
     protected function getAllParentCate($allParent)
     {
-        //var_dump($allParent);exit;
         $d = $allParent;
         $data = [];
         if (is_array($allParent) && !empty($allParent)) {
             foreach ($allParent as $k => $category) {
                 unset($d[$k]);
-                $category_id = $category['id'];
+                $category_id = $category['_id'];
                 $parent_id = $category['parent_id'];
                 if ($parent_id) {
                     $cate = $this->_categoryModel->find()->asArray()->where([
@@ -531,10 +551,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
                         'status' => $this->getCategoryEnableStatus(),
                         'menu_show'  => $this->getCategoryMenuShowStatus(),
                     ])->all();
-                    //var_dump($cate);
-                    //echo '$$$$$$$$$$';
                     if (is_array($cate) && !empty($cate)) {
-                        //echo '**********';
                         foreach ($cate as $one) {
                             $one =$this->unserializeData($one) ;
                             $c_id = $one['id'];
@@ -543,8 +560,6 @@ class CategoryMysqldb extends Service implements CategoryInterface
                                 'url_key'    => $one['url_key'],
                                 'parent_id'    => $one['parent_id'],
                             ];
-                            //echo $category_id;
-                            //echo '&&&'.$c_id;
                             if (($c_id == $category_id) && !empty($d)) {
                                 $data[$c_id]['child'] = $this->getAllParentCate($d);
                             }
@@ -557,6 +572,7 @@ class CategoryMysqldb extends Service implements CategoryInterface
                             }
                         }
                     }
+                    
                     break;
                 }
             }
@@ -564,32 +580,126 @@ class CategoryMysqldb extends Service implements CategoryInterface
 
         return $data;
     }
+    
+    public function getChildCategory($category_id) {
+        
+        return $this->getChildCate($category_id);
+    }
 
     protected function getChildCate($category_id)
     {
-        //echo $category_id;
         $data = $this->_categoryModel->find()->asArray()->where([
             'parent_id' => $category_id,
             'status' => $this->getCategoryEnableStatus(),
             'menu_show'  => $this->getCategoryMenuShowStatus(),
-        ])->all();
+        ])->orderBy(['sort_order' => SORT_DESC])->all();
         $arr = [];
         if (is_array($data) && !empty($data)) {
             foreach ($data as $one) {
                 $one =$this->unserializeData($one) ;
                 $currentUrlKey = $one['url_key'];
                 $currentName = $one['name'];
-                $currentId = (string) $one['_id'];
-
+                $currentId = (string) $one['id'];
+                
                 $arr[$currentId] = [
-                    //'_id' 		=> $currentId,
+                    'category_id' 		=> $currentId,
                     'name'        => $currentName,
                     'url_key'    => $currentUrlKey,
                     'parent_id'    => $one['parent_id'],
+                    'thumbnail_image' => $one['thumbnail_image'],
+                    'image' => $one['image'],
                 ];
             }
         }
-
+        
         return $arr;
     }
+    
+    public function removeCategoryProductRelationByCategoryId($category_id)
+    {
+        return $this->_categoryProductModel->deleteAll(['category_id' => $category_id]);
+    }
+    
+    
+    /**
+     * @param $one|array , save one data . 分类数组
+     * @param $originUrlKey|string , 分类的在修改之前的url key.（在数据库中保存的url_key字段，如果没有则为空）
+     * 保存分类，同时生成分类的伪静态url（自定义url），如果按照name生成的url或者自定义的urlkey存在，系统则会增加几个随机数字字符串，来增加唯一性。
+     * 和save方法不同的是，如果category_id，查询不到，那么插入数据，将新插入数据的id = excel category id
+     */
+    public function excelSave($one, $originUrlKey = 'catalog/category/index')
+    {
+        $parent_id = $one['parent_id'];
+        $currentDateTime = \fec\helpers\CDate::getCurrentDateTime();
+        $primaryVal = isset($one[$this->getPrimaryKey()]) ? $one[$this->getPrimaryKey()] : '';
+        if (!$primaryVal) {
+            Yii::$service->helper->errors->add('category id can not empty');
+            
+            return false;
+        }
+        $model = $this->_categoryModel->findOne($primaryVal);
+        if (!isset($model[$this->getPrimaryKey()]) || !$model[$this->getPrimaryKey()]) {
+            $model = new $this->_categoryModelName;
+            $model[$this->getPrimaryKey()] = $one[$this->getPrimaryKey()];
+            $model->created_at = time();
+            $model->created_user_id = \fec\helpers\CUser::getCurrentUserId();
+        } else {
+            // 多语言属性，如果您有其他的多语言属性，可以自行二开添加。
+            $model = $this->unserializeData($model) ;
+            $name =$model['name'];
+            $title = $model['title'];
+            $meta_keywords = $model['meta_keywords'];
+            $meta_description = $model['meta_description'];
+            $description = $model['description'];
+            //var_dump($title);var_dump($one['title']);
+            if (is_array($one['name']) && !empty($one['name'])) {
+                $one['name'] = array_merge((is_array($name) ? $name : []), $one['name']);
+            }
+            if (is_array($one['title']) && !empty($one['title'])) {
+                $one['title'] = array_merge((is_array($title) ? $title : []), $one['title']);
+            }
+            if (is_array($one['meta_keywords']) && !empty($one['meta_keywords'])) {
+                $one['meta_keywords'] = array_merge((is_array($meta_keywords) ? $meta_keywords : []), $one['meta_keywords']);
+            }
+            if (is_array($one['meta_description']) && !empty($one['meta_description'])) {
+                $one['meta_description'] = array_merge((is_array($meta_description) ? $meta_description : []), $one['meta_description']);
+            }
+            if (is_array($one['description']) && !empty($one['description'])) {
+                $one['description'] = array_merge((is_array($description) ? $description : []), $one['description']);
+            }
+        }
+        // 增加分类的级别字段level，从1级级别开始依次类推。
+        if ($parent_id == 0) {
+            $model['level'] = 1;
+        } else {
+            $parent_model = $this->_categoryModel->findOne($parent_id);
+            if ($parent_level = $parent_model['level']) {
+                $model['level'] = $parent_level + 1;
+            }
+        }
+        $model->updated_at = time();
+        unset($one[$this->getPrimaryKey()]);
+        $one['status']    = (int)$one['status'];
+        $one['menu_show'] = (int)$one['menu_show'];
+        $allowMenuShowArr = [ $model::MENU_SHOW, $model::MENU_NOT_SHOW];
+        if (!in_array($one['menu_show'], $allowMenuShowArr)) {
+            $one['menu_show'] = $model::MENU_SHOW;
+        }
+        $allowStatusArr = [ $model::STATUS_ENABLE, $model::STATUS_DISABLE];
+        if (!in_array($one['status'], $allowStatusArr)) {
+            $one['status'] = $model::STATUS_ENABLE;
+        }
+        $one = $this->serializeSaveData($one);
+        $saveStatus = Yii::$service->helper->ar->save($model, $one);
+        $primaryVal = $model->id;
+        $originUrl = $originUrlKey.'?'.$this->getPrimaryKey() .'='. $primaryVal;
+        $originUrlKey = isset($one['url_key']) ? $one['url_key'] : '';
+        $defaultLangTitle = Yii::$service->fecshoplang->getDefaultLangAttrVal($one['name'], 'name');
+        $urlKey = Yii::$service->url->saveRewriteUrlKeyByStr($defaultLangTitle, $originUrl, $originUrlKey);
+        $model->url_key = $urlKey;
+        $model->save();
+    
+        return $model;
+    }
+    
 }

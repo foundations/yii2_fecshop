@@ -57,6 +57,7 @@ class StaticBlockMysqldb extends Service implements StaticBlockInterface
 
             return $one;
         } else {
+            
             return new $this->_staticBlockModelName();
         }
     }
@@ -65,6 +66,7 @@ class StaticBlockMysqldb extends Service implements StaticBlockInterface
     {
         $one = $this->_staticBlockModel->find()->asArray()->where([
             'identify' => $identify,
+            'status'  => $this->getEnableStatus()
         ])->one();
         foreach ($this->_lang_attr as $attrName) {
             if (isset($one[$attrName])) {
@@ -102,7 +104,7 @@ class StaticBlockMysqldb extends Service implements StaticBlockInterface
                 $coll[$k] = $one;
             }
         }
-        //var_dump($one);
+        
         return [
             'coll' => $coll,
             'count'=> $query->limit(null)->offset(null)->count(),
@@ -160,6 +162,7 @@ class StaticBlockMysqldb extends Service implements StaticBlockInterface
         }
         $one = $query->one();
         if (!empty($one)) {
+            
             return false;
         }
 
@@ -185,5 +188,19 @@ class StaticBlockMysqldb extends Service implements StaticBlockInterface
         }
 
         return true;
+    }
+    
+    public function getEnableStatus()
+    {
+        $model = $this->_staticBlockModel;
+        
+        return $model::STATUS_ACTIVE;
+    }
+    
+    public function getDisableStatus()
+    {
+        $model = $this->_staticBlockModel;
+        
+        return $model::STATUS_DISACTIVE;
     }
 }

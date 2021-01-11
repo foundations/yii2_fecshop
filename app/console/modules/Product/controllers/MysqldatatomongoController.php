@@ -23,8 +23,9 @@ class MysqldatatomongoController extends Controller
     
     public function init()
     {
-        Yii::$service->product->changeToMysqlStorage();
         parent::init();
+        Yii::$service->product->changeToMysqlStorage();
+        
     }
     
     
@@ -54,6 +55,7 @@ class MysqldatatomongoController extends Controller
         foreach ($coll as $k=>$product) {
             $product_id = $product[$productPrimaryKey];
             $categoryIds = Yii::$service->product->getCategoryIdsByProductId($product_id);
+            
             $coll[$k]['category'] = is_array($categoryIds) ? $categoryIds : [];
         }
         
@@ -61,9 +63,17 @@ class MysqldatatomongoController extends Controller
         Yii::$service->product->changeToMongoStorage();
         foreach ($coll as $product) {
             $arr = [];
+            
             foreach ($product as $k => $v) {
-                $arr[$k] = $v;
+                if ($k != 'attr_group_info') {
+                    $arr[$k] = $v;
+                } else if ($k == 'attr_group_info' && is_array($v)) {
+                    foreach ($v as $attr_group_key => $attr_group_val) {
+                        $arr[$attr_group_key] = $attr_group_val;
+                    }
+                } 
             }
+            $arr['category'] = $product['category'];
             Yii::$service->product->sync($arr);
         }
         

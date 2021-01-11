@@ -15,7 +15,7 @@ use Yii;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class Index
+class Index extends \yii\base\BaseObject
 {
     public function getLastData()
     {
@@ -23,10 +23,18 @@ class Index
         $currency_info = Yii::$service->page->currency->getCurrencyInfo();
         $cart_info = $this->getCartInfo(false);
         $this->breadcrumbs(Yii::$service->page->translate->__('Checkout Cart'));
+        // check if is enable paypal express
+        $enablePaypalExpress = false;
+        $appName = Yii::$service->helper->getAppName();
+        $paypalExpressConfig = Yii::$app->store->get($appName.'_payment', 'paypal_express');
+        if ($paypalExpressConfig == Yii::$app->store->enable) {
+            $enablePaypalExpress = true;
+        }
         return [
             'cart_info'         => $cart_info,
             'currency_info'     => $currency_info,
             'trace_cart_info'   => $this->getTraceCartInfo($cart_info),
+            'enablePaypalExpress' => $enablePaypalExpress,
         ];
     }
     
@@ -171,7 +179,7 @@ class Index
             'name' => 'description',
             'content' => 'checkout cart page',
         ]);
-        $this->_title = 'checkout cart page';
-        Yii::$app->view->title = $this->_title;
+        $title = 'checkout cart page';
+        Yii::$app->view->title = $title;
     }
 }

@@ -60,8 +60,31 @@ class ArticleMysqldb extends Service implements ArticleInterface
 
             return $one;
         } else {
+            
             return new $this->_articleModelName();
         }
+    }
+    
+    public function getActivePageByPrimaryKey($primaryKey)
+    {
+        if ($primaryKey) {
+            $pK = $this->getPrimaryKey();
+            $one = $this->_articleModel->findOne([
+                $pK => $primaryKey,
+                'status' =>$this->getEnableStatus(),
+            ]);
+            if ($one) {
+                foreach ($this->_lang_attr as $attrName) {
+                    if (isset($one[$attrName])) {
+                        $one[$attrName] = unserialize($one[$attrName]);
+                    }
+                }
+                // echo 1;exit;
+                return $one;
+            }
+        }
+        
+        return null;
     }
 
     /**
@@ -71,16 +94,20 @@ class ArticleMysqldb extends Service implements ArticleInterface
     public function getByUrlKey($urlKey)
     {
         if ($urlKey) {
-            $model = $this->_articleModel->findOne(['url_key' => '/'.$urlKey]);
+            $model = $this->_articleModel->findOne([
+                'url_key' => '/'.$urlKey,
+                'status' =>$this->getEnableStatus(),
+            ]);
             if (isset($model['url_key'])) {
                 $model['content'] = unserialize($model['content']);
                 $model['title'] = unserialize($model['title']);
                 $model['meta_keywords'] = unserialize($model['meta_keywords']);
                 $model['meta_description'] = unserialize($model['meta_description']);
-                var_dump($model);
+                
                 return $model;
             }
         }
+        
         return false;
     }
 
@@ -111,7 +138,7 @@ class ArticleMysqldb extends Service implements ArticleInterface
                 $coll[$k] = $one;
             }
         }
-        //var_dump($coll);
+        
         return [
             'coll' => $coll,
             'count'=> $query->limit(null)->offset(null)->count(),
@@ -139,7 +166,7 @@ class ArticleMysqldb extends Service implements ArticleInterface
             $model->created_at = time();
             $model->created_user_id = \fec\helpers\CUser::getCurrentUserId();
         }
-        
+        $defaultLangTitle = Yii::$service->fecshoplang->getDefaultLangAttrVal($one['title'], 'title');
         $model->updated_at = time();
         foreach ($this->_lang_attr as $attrName) {
             if (is_array($one[$attrName]) && !empty($one[$attrName])) {
@@ -153,9 +180,7 @@ class ArticleMysqldb extends Service implements ArticleInterface
 
         $originUrl = $originUrlKey.'?'.$this->getPrimaryKey() .'='. $primaryVal;
         $originUrlKey = isset($one['url_key']) ? $one['url_key'] : '';
-        $defaultLangTitle = Yii::$service->fecshoplang->getDefaultLangAttrVal($one['title'], 'title');
         $urlKey = Yii::$service->url->saveRewriteUrlKeyByStr($defaultLangTitle, $originUrl, $originUrlKey);
-        
         $model->url_key = $urlKey;
         $this->initStatus($model);
         $model->save();
@@ -164,19 +189,23 @@ class ArticleMysqldb extends Service implements ArticleInterface
         $model['title'] = unserialize($model['title']);
         $model['meta_keywords'] = unserialize($model['meta_keywords']);
         $model['meta_description'] = unserialize($model['meta_description']);
+        
         return $model->attributes;
     }
 
     protected function initStatus($model)
     {
-        $statusArr = [$model::STATUS_ACTIVE, $model::STATUS_DELETED];
+        $activeStatus = $this->getEnableStatus();
+        $disableStatus = $this->getDisableStatus();
+        
+        $statusArr = [$activeStatus, $disableStatus];
         if ($model['status']) {
             $model['status'] = (int) $model['status'];
             if (!in_array($model['status'], $statusArr)) {
-                $model['status'] = $model::STATUS_ACTIVE;
+                $model['status'] = $activeStatus;
             }
         } else {
-            $model['status'] = $model::STATUS_ACTIVE;
+            $model['status'] = $disableStatus;
         }
     }
 
@@ -233,5 +262,19 @@ class ArticleMysqldb extends Service implements ArticleInterface
         }
 
         return true;
+    }
+    
+    public function getEnableStatus()
+    {
+        $model = $this->_articleModel;
+        
+        return $model::STATUS_ACTIVE;
+    }
+    
+    public function getDisableStatus()
+    {
+        $model = $this->_articleModel;
+        
+        return $model::STATUS_DISACTIVE;
     }
 }

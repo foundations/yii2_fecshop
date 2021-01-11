@@ -30,6 +30,7 @@ class AppfrontController extends FecController
      */
     public function init()
     {
+        parent::init();
         /**
          * 如果模板路径没有配置，则配置模板路径
          */
@@ -106,6 +107,11 @@ class AppfrontController extends FecController
      */
     public function findLayoutFile($view)
     {
+        $layoutFileStr = Yii::$service->page->theme->layoutFile;
+        if (substr($layoutFileStr, 0, 1) == '@') {
+            
+            return Yii::getAlias($layoutFileStr);
+        }
         $layoutFile = '';
         $relativeFile = 'layouts/'.Yii::$service->page->theme->layoutFile;
         $absoluteDir = Yii::$service->page->theme->getThemeDirArr();

@@ -15,7 +15,7 @@ use Yii;
  * @author Terry Zhao <2358269014@qq.com>
  * @since 1.0
  */
-class Index
+class Index extends \yii\base\BaseObject
 {
     public $pageNum;
     public $numPerPage = 20;
@@ -46,7 +46,7 @@ class Index
             ],
             'asArray' => true,
         ];
-        $data = Yii::$service->product->favorite->list($filter);
+        $data = Yii::$service->product->favorite->lists($filter);
         $coll = $data['coll'];
         $count = $data['count'];
         $pageToolBar = $this->getProductPage($count);

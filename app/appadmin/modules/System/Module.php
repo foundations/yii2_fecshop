@@ -19,6 +19,7 @@ class Module extends \fec\AdminModule
 
     public function init()
     {
+        parent::init();
         $nameSpace = __NAMESPACE__;
         // 以下代码必须指定
         // 设置模块 controller namespace的文件路径
@@ -27,7 +28,9 @@ class Module extends \fec\AdminModule
         $this->blockNamespace = $nameSpace . '\\block';
         // $this->_currentDir = __DIR__;
         // $this->_currentNameSpace = __NAMESPACE__;
-
+        // 设置超时时间
+        ini_set("max_execution_time", "360000");
+        set_time_limit(0);
         // 指定默认的man文件
         $this->layout = '/main_ajax.php';
         parent::init();

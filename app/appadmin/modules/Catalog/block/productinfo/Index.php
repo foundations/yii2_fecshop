@@ -91,6 +91,9 @@ class Index extends AppadminbaseBlock implements AppadminbaseBlockInterface
      */
     public function getSearchArr()
     {
+        $productPrimaryKey = Yii::$service->product->getPrimaryKey();
+        // 判断mongodb还是mysql存储product数据
+        $nameIsLang = $productPrimaryKey == '_id' ? true : false;
         $data = [
             [    // selecit的Int 类型
                 'type'  => 'select',
@@ -111,7 +114,7 @@ class Index extends AppadminbaseBlock implements AppadminbaseBlockInterface
                 'title'   => Yii::$service->page->translate->__('Product Name'),
                 'name'  => 'name',
                 'columns_type' => 'string',
-                'lang' => true,
+                'lang' => $nameIsLang,
             ],
             [    // 字符串类型
                 'type' => 'inputtext',
@@ -179,58 +182,58 @@ class Index extends AppadminbaseBlock implements AppadminbaseBlockInterface
                 'orderField'     => 'spu',
                 'label'            => Yii::$service->page->translate->__('Spu'),
                 'width'           => '110',
-                'align'            => 'center',
+                'align'            => 'left',
             ],
             [
                 'orderField'    => 'sku',
                 'label'            => Yii::$service->page->translate->__('Sku'), 
                 'width'          => '110',
-                'align'           => 'center',
+                'align'           => 'left',
             ],
             [
                 'orderField'    => 'qty',
                 'label'           => Yii::$service->page->translate->__('Stock Qty'),
                 'width'          => '50',
-                'align'           => 'center',
+                'align'           => 'left',
             ],
-            [
-                'orderField'    => 'weight',
-                'label'           => Yii::$service->page->translate->__('Weight'),
-                'width'          => '50',
-                'align'           => 'center',
-            ],
+            //[
+            //    'orderField'    => 'weight',
+            //    'label'           => Yii::$service->page->translate->__('Weight'),
+            //    'width'          => '50',
+            //    'align'           => 'left',
+            //],
             [
                 'orderField'    => 'status',
                 'label'           => Yii::$service->page->translate->__('Status'),
                 'width'          => '50',
-                'align'           => 'center',
+                'align'           => 'left',
                 'display'        => $this->_productHelper->getStatusArr(),
             ],
             [
                 'orderField'    => 'price',
                 'label'           => Yii::$service->page->translate->__('Sale Price') ,
                 'width'          => '50',
-                'align'           => 'center',
+                'align'           => 'left',
             ],
             [
                 'orderField'    => 'created_user_id',
                 'label'           => Yii::$service->page->translate->__('Created Person'),
                 'width'          => '90',
-                'align'           => 'center',
+                'align'           => 'left',
             ],
             [
                 'orderField'    => 'created_at',
                 'label'           => Yii::$service->page->translate->__('Created At'),
                 'width'          => '100',
-                'align'           => 'center',
-                'convert'       => ['int' => 'datetime'],
+                'align'           => 'left',
+                'convert'       => ['int' => 'date'],
             ],
             [
                 'orderField'    => 'updated_at',
                 'label'           => Yii::$service->page->translate->__('Updated At'),
                 'width'          => '100',
-                'align'           => 'center',
-                'convert'       => ['int' => 'datetime'],
+                'align'           => 'left',
+                'convert'       => ['int' => 'date'],
             ],
         ];
 
@@ -247,9 +250,10 @@ class Index extends AppadminbaseBlock implements AppadminbaseBlockInterface
         $csrfString = \fec\helpers\CRequest::getCsrfString();
         $user_ids = [];
         $product_ids = [];
+        $productPrimaryKey = Yii::$service->product->getPrimaryKey();
         foreach ($data as $one) {
             $user_ids[] = $one['created_user_id'];
-            $product_ids[] = (string)$one['_id'];
+            $product_ids[] = (string)$one[$productPrimaryKey];
         }
         //var_dump($product_ids);
         $users = Yii::$service->adminUser->getIdAndNameArrByIds($user_ids);
@@ -274,6 +278,15 @@ class Index extends AppadminbaseBlock implements AppadminbaseBlockInterface
                     $display_title = $val;
                     $str .= '<td><span title="'.$display_title.'">'.$val.'</span></td>';
                     continue;
+                } else if($orderField == 'status'){
+                    $valLabel = $display[$val] ? $display[$val] : $val;
+                    if ($val == 1) {
+                        $str .= '<td><span title="'.$valLabel.'" style="background: #5eb95e; color: #fff; padding:4px 6px;  width: auto; display: inline;">'.$valLabel.'</span></td>';
+                    } else {
+                        $str .= '<td><span title="'.$valLabel.'" style="background: #cc0000; color: #fff; padding:4px 6px;  width: auto; display: inline;">'.$valLabel.'</span></td>';
+                    }
+                    continue;
+                    
                 }
                 if ($orderField == $this->_primaryKey) {
                     $display_title = $val;
@@ -286,7 +299,7 @@ class Index extends AppadminbaseBlock implements AppadminbaseBlockInterface
                         $val = $one['image']['main']['image'];
                     }
                     $imgUrl = Yii::$service->product->image->getUrl($val);
-                    $str .= '<td><span style="display:block;padding:10px 5px;" title="'.$imgUrl.'"><img style="margin:auto;display:block;max-width:100px;max-height:100px;" src="'.$imgUrl.'" /></span></td>';
+                    $str .= '<td><span style="display:block;padding:5px 5px;" title="'.$imgUrl.'"><img style="margin:auto;display:block;max-width:50px;max-height:50px;" src="'.$imgUrl.'" /></span></td>';
                     continue;
                 }
                 if ($val) {
@@ -350,9 +363,9 @@ class Index extends AppadminbaseBlock implements AppadminbaseBlockInterface
                 $str .= '<td><span title="'.$display_title.'">'.$val.'</span></td>';
             }
             $str .= '<td>
-						<a title="' . Yii::$service->page->translate->__('Edit')  . '" target="dialog" class="btnEdit" mask="true" drawable="true" width="1200" height="680" href="'.$this->_editUrl.'?'.$this->_primaryKey.'='.$one[$this->_primaryKey].'" ><i class="fa fa-pencil"></i></a>
-						<a title="' . Yii::$service->page->translate->__('Delete')  . '" target="ajaxTodo" href="'.$this->_deleteUrl.'?'.$this->_primaryKey.'='.$one[$this->_primaryKey].'" class="btnDel"  csrfName="' .CRequest::getCsrfName(). '" csrfVal="' .CRequest::getCsrfValue(). '" ><i class="fa fa-trash-o"></i></a>
-						<a style="margin:3px 0 0" title="' . Yii::$service->page->translate->__('Copy')  . '" target="dialog" class="btnEdit" mask="true" drawable="true" width="1200" height="680" href="'.$this->_copyUrl.'&'.$this->_primaryKey.'='.$one[$this->_primaryKey].'" ><span><i class="fa fa-copy"></i></span></a>
+						<a style="width:17px;" title="' . Yii::$service->page->translate->__('Edit')  . '" target="dialog" class="btnEdit" mask="true" drawable="true" width="1200" height="680" href="'.$this->_editUrl.'?'.$this->_primaryKey.'='.$one[$this->_primaryKey].'" ><i class="fa fa-pencil" style="font-size:16px;"></i></a>
+						<a style="width:17px;" title="' . Yii::$service->page->translate->__('Delete')  . '" target="ajaxTodo" href="'.$this->_deleteUrl.'?'.$this->_primaryKey.'='.$one[$this->_primaryKey].'" class="btnDel"  csrfName="' .CRequest::getCsrfName(). '" csrfVal="' .CRequest::getCsrfValue(). '" ><i style="font-size:16px;" class="fa fa-trash-o"></i></a>
+						<a style="width:17px;margin:3px 0 0" title="' . Yii::$service->page->translate->__('Copy')  . '" target="dialog" class="btnEdit" mask="true" drawable="true" width="1200" height="680" href="'.$this->_copyUrl.'&'.$this->_primaryKey.'='.$one[$this->_primaryKey].'" ><span><i style="font-size:16px;" class="fa fa-copy"></i></span></a>
 					</td>';
             $str .= '</tr>';
         }

@@ -67,10 +67,12 @@ class AdminUser extends Service
 
     public function getActiveStatus(){
         $model = $this->_model;
+        
         return $model::STATUS_ACTIVE;
     }
     public function getDeleteStatus(){
         $model = $this->_model;
+        
         return $model::STATUS_DELETED;
     }
 
@@ -117,7 +119,7 @@ class AdminUser extends Service
                 $coll[$k] = $one;
             }
         }
-        //var_dump($one);
+        
         return [
             'coll' => $coll,
             'count'=> $query->limit(null)->offset(null)->count(),
@@ -162,7 +164,11 @@ class AdminUser extends Service
         if (!$data['auth_key']) {
             $this->_userFormModel->auth_key = '';
         }
-        
+        if (!$data['password'] && !$data['id']) {
+            Yii::$service->helper->errors->add("password can not empty");
+            
+            return null;
+        }
         if ($this->_userFormModel[$primaryKey]) {
             if ($this->_userFormModel->validate()) {
                 $this->_userFormModel->save();
@@ -232,10 +238,6 @@ class AdminUser extends Service
         return $removeIds;
     }
     
-    
-
-
-
     /**
      * @param $ids | Int Array
      * @return 得到相应用户的数组。

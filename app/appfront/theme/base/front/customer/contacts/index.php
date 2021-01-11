@@ -9,7 +9,7 @@
 ?>
 <div class="main container two-columns-left">
 	<div class="col-main account_center">
-		<?= Yii::$service->page->widget->render('flashmessage'); ?>			
+		<?= Yii::$service->page->widget->render('base/flashmessage'); ?>			
 		<div class="std">
 			<div class="page-title">
 				<h2><?= Yii::$service->page->translate->__('Contact Information'); ?></h2>
@@ -49,7 +49,7 @@
 						<li>
 							<label for="email" class="required"><em>*</em><?= Yii::$service->page->translate->__('Comment'); ?></label>
 							<div class="input-box">
-								<textarea name="editForm[comment]" id="contacts_comment"><?= $comment ?></textarea>
+								<textarea name="editForm[comment]" id="contacts_comment" style="padding:10px;"><?= $comment ?></textarea>
 								<span id="contacts_comment_span"></span>
 							</div>
 						</li>

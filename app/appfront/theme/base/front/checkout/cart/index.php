@@ -13,8 +13,8 @@ use fec\helpers\CRequest;
 ?>
 <div class="main container one-column">
 	<div class="col-main">
-    <?= Yii::$service->page->widget->render('breadcrumbs',$this); ?>
-    <?= Yii::$service->page->widget->render('flashmessage'); ?>
+    <?= Yii::$service->page->widget->render('base/breadcrumbs',$this); ?>
+    <?= Yii::$service->page->widget->render('base/flashmessage'); ?>
 	<?php if(is_array($cart_info) && !empty($cart_info)):   ?>
 			    
 		<div class="product_page">
@@ -105,7 +105,7 @@ use fec\helpers\CRequest;
                                     
                                     <td class="a-right">
 										<span class="cart-price">
-											<span class="price"><?= Format::price($product_one['product_weight']); ?>Kg</span>                
+											<span class="price"><?= Format::price($product_one['product_weight']); ?>g</span>                
 										</span>
 									</td>
                                     
@@ -134,7 +134,7 @@ use fec\helpers\CRequest;
                                     
                                     <td class="a-right">
 										<span class="cart-price">
-											<span class="price"><?= Format::price($product_one['product_row_weight']); ?>Kg</span>                            
+											<span class="price"><?= Format::price($product_one['product_row_weight']); ?>g</span>                            
 										</span>
 									</td>
                                     
@@ -210,7 +210,7 @@ use fec\helpers\CRequest;
                                         </td>
 										<td style="" class="a-right">
 											<span class="price">
-                                                <?= Format::price($cart_info['product_weight']); ?> Kg
+                                                <?= Format::price($cart_info['product_weight']); ?> g
                                             </span>    
                                         </td>
 									</tr>
@@ -252,11 +252,12 @@ use fec\helpers\CRequest;
 						<div class="proceed_to_checkout">
 							
 							<button onclick="location.href='<?= Yii::$service->url->getUrl('checkout/onepage');  ?>'" type="button" title="Proceed to Checkout" class="button btn-proceed-checkout btn-checkout"><span><span><?= Yii::$service->page->translate->__('Proceed to Pay');?></span></span></button>
-							
-							<span class="or">- <?= Yii::$service->page->translate->__('OR');?> - </span>
-							<a class="express_paypal" href="<?= Yii::$service->url->getUrl('payment/paypal/express/start');    ?>">
-							
-							</a>
+							<?php if ($enablePaypalExpress): ?>
+                                <span class="or">- <?= Yii::$service->page->translate->__('OR');?> - </span>
+                                <a class="express_paypal" href="<?= Yii::$service->url->getUrl('payment/paypal/express/start');    ?>">
+                                
+                                </a>
+                            <?php endif;  ?>
 						</div>
 					</div>
 					<div class="clear"></div>
@@ -290,7 +291,7 @@ csrfName = "<?= CRequest::getCsrfName() ?>";
 csrfVal = "<?= CRequest::getCsrfValue() ?>";
 $(document).ready(function(){
     // set select all checkbox
-    selectall = "<?= Yii::$app->request->get('selectall') ?>";
+    selectall = "<?=  \Yii::$service->helper->htmlEncode(Yii::$app->request->get('selectall')) ?>";
     selectAllChecked = false;
     if (selectall == 1) {
         selectAllChecked = true;
@@ -329,9 +330,11 @@ $(document).ready(function(){
 				data: $data,
 				url:updateCartInfoUrl,
 				success:function(data, textStatus){ 
-					if(data.status == 'success'){
+					if (data.status == 'success') {
 						window.location.href=currentUrl;
-					}
+					} else {
+                        alert(data.content);
+                    }
 				},
 				error:function (XMLHttpRequest, textStatus, errorThrown){}
 			});
@@ -354,9 +357,11 @@ $(document).ready(function(){
 			data: $data,
 			url:updateCartInfoUrl,
 			success:function(data, textStatus){ 
-				if(data.status == 'success'){
+				if (data.status == 'success') {
 					window.location.href=currentUrl;
-				}
+				} else {
+                    alert(data.content);
+                }
 			},
 			error:function (XMLHttpRequest, textStatus, errorThrown){}
 		});
@@ -484,5 +489,5 @@ $(document).ready(function(){
 <?php $this->endBlock(); ?> 
 <?php $this->registerJs($this->blocks['changeCartInfo'],\yii\web\View::POS_END);//将编写的js代码注册到页面底部 ?>
 </script>
-<?php  // Yii::$service->page->trace->getTraceCartJsCode($trace_cart_info) // 这个改成服务端发送加入购物车数据，而不是js传递的方式 ?>
+<?php //  Yii::$service->page->trace->getTraceCartJsCode($trace_cart_info) // 这个改成服务端发送加入购物车数据，而不是js传递的方式 ?>
 

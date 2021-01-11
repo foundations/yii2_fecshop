@@ -22,7 +22,10 @@ class UrlKey extends Service
 {
     const URLKEY_LABEL_ARR = 'appadmin_urlkey_label_cache_arr'; 
     public $numPerPage = 20;
-
+    public $bootUrlKey = [
+        '/fecadmin/error/index',   // 错误界面
+        '/fecadmin/index/index'  // 主界面
+    ];
     public $urlKeyTags;
     protected $_urlKeyTags;
     
@@ -62,6 +65,7 @@ class UrlKey extends Service
                 }
             }
         }
+        
         return $this->_urlKeyTags[$key];
     }
 
@@ -82,6 +86,7 @@ class UrlKey extends Service
 
             return $one;
         } else {
+            
             return new $this->_modelName();
         }
     }
@@ -112,12 +117,33 @@ class UrlKey extends Service
                 $coll[$k] = $one;
             }
         }
-        //var_dump($one);
+        
         return [
             'coll' => $coll,
             'count'=> $query->limit(null)->offset(null)->count(),
         ];
     }
+    
+    /**
+     * 默认必须添加的url key id
+     */
+    public function getBootUrlKeyIds()
+    {
+        $urlKeyIds = [];
+        $data = $this->_mode->find()->asArray()->where(['in', 'url_key', $this->bootUrlKey])->all();
+        if (!is_array($data) || empty($data)) {
+            
+            return $urlKeyIds;
+        }
+        foreach ($data as $one) {
+            $urlKeyIds[] = $one['id'];
+        }
+        
+        return $urlKeyIds;
+    }
+    
+    
+    
     /**
      * @return array 得到urlKey 和 label 对应的数组。
      *  这样可以通过url_key得到当前操作的菜单的name
@@ -273,6 +299,7 @@ class UrlKey extends Service
         }
         $one = $query->one();
         if (!empty($one)) {
+            
             return false;
         }
 
@@ -296,7 +323,6 @@ class UrlKey extends Service
                 }
 
                 $model->delete();
-                // delete roleUrlKey
                 Yii::$service->admin->roleUrlKey->removeByUrlKeyId($id);
             }
         } else {
@@ -308,7 +334,6 @@ class UrlKey extends Service
                 return false;
             }
             $model->delete();
-            // delete roleUrlKey
             Yii::$service->admin->roleUrlKey->removeByUrlKeyId($id);
         }
 

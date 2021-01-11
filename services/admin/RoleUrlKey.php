@@ -55,6 +55,7 @@ class RoleUrlKey extends Service
 
             return $one;
         } else {
+            
             return new $this->_modelName();
         }
     }
@@ -85,7 +86,7 @@ class RoleUrlKey extends Service
                 $coll[$k] = $one;
             }
         }
-        //var_dump($one);
+        
         return [
             'coll' => $coll,
             'count'=> $query->limit(null)->offset(null)->count(),
@@ -139,6 +140,9 @@ class RoleUrlKey extends Service
             $this->_model->deleteAll([
                 'role_id' => $roleId
             ]);
+            $bootUrlKeyIds = Yii::$service->admin->urlKey->getBootUrlKeyIds();
+            $url_key_ids = array_merge($url_key_ids, $bootUrlKeyIds);
+            $url_key_ids = array_unique($url_key_ids);
             foreach ($url_key_ids as $url_key_id) {
                 $model = new $this->_modelName();
                 $model->created_at = time();
@@ -147,8 +151,10 @@ class RoleUrlKey extends Service
                 $model->role_id = $roleId;
                 $model->save();
             }
+            
             return true;
         }
+        
         return false;
     }
 
@@ -169,6 +175,7 @@ class RoleUrlKey extends Service
         }
         $one = $query->one();
         if (!empty($one)) {
+            
             return false;
         }
 
